@@ -7,7 +7,7 @@ prd_file: "docs/requirements/20260527-initial-reqs/prd-bluetooth-presence-notifi
 phase: 1
 parallel_id: 2
 branch: "feature/current/bluetooth-presence-notifier/story-01-002-ble-scanning-loop"
-status: "in_progress"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: []
