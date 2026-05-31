@@ -1,4 +1,4 @@
-mod config;
+use btnotify::config;
 
 use clap::Parser;
 use anyhow::{Context, Result};
@@ -121,7 +121,7 @@ fn main() -> Result<()> {
     info!("Starting {}", MODULE_NAME);
 
     // Load application config
-    let app_config = match config::load_config(cli.config.clone()) {
+    let _app_config = match config::load_config(cli.config.clone()) {
         Ok(cfg) => {
             info!("Loaded config: scan_interval={}s, rssi_threshold={} dBm, enter_duration={}s, exit_timeout={}s",
                 cfg.scan_interval_seconds,

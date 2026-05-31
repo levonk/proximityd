@@ -8,10 +8,10 @@ updated_at: "2026-05-27"
 
 # Bluetooth Presence Notifier — Implementation Task Index
 
-| Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
-| -------- | ----------- | ------ | ------------ | ------------- | ------- |
+| Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules | Status |
+| -------- | ----------- | ------ | ------------ | ------------- | ------- | ------ |
 | 01-001 | Config & Device Mapping Loading | feature/current/bluetooth-presence-notifier/story-01-001-config-device-mapping-loading | None | Parallel-safe: true | src/config/ |
-| 01-002 | BLE Scanning Loop | feature/current/bluetooth-presence-notifier/story-01-002-ble-scanning-loop | None | Parallel-safe: true | src/bluetooth/ |
+| 01-002 | BLE Scanning Loop | feature/current/bluetooth-presence-notifier/story-01-002-ble-scanning-loop | None | Parallel-safe: true | src/bluetooth/ | [~] In-Progress |
 | 01-003 | Device State Tracking Structures | feature/current/bluetooth-presence-notifier/story-01-003-device-state-tracking-structures | None | Parallel-safe: true | src/state/ |
 | 02-001 | Enter/Exit Detection with Debounce | feature/current/bluetooth-presence-notifier/story-02-001-enter-exit-detection-with-debounce | 01-001, 01-002, 01-003 | Parallel-safe: true | src/detection/ |
 | 03-001 | Pluggable Notifier Trait & Discord Webhook | feature/current/bluetooth-presence-notifier/story-03-001-pluggable-notifier-trait-and-discord-webhook | 02-001 | Parallel-safe: true | src/notifier/ |
