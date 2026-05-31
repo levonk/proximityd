@@ -1,0 +1,25 @@
+# btnotify application configuration
+# Place this file at:
+#   - $BTNOTIFY_CONFIG_DIR/config.toml  (if env var is set)
+#   - $XDG_CONFIG_HOME/com.myorg.btnotify/config.toml  (default on Linux/macOS)
+#   - %APPDATA%\com\myorg\btnotify\config\config.toml  (default on Windows)
+
+# All fields are optional; sensible defaults are shown below.
+
+# How often to scan for Bluetooth devices (seconds).
+scan_interval_seconds = 30
+
+# RSSI threshold in dBm; signals stronger than this trigger an "enter" event.
+enter_rssi_threshold_dbm = -70
+
+# How long a device must be continuously seen before an "enter" event fires.
+enter_duration_seconds = 5
+
+# How long a device can be unseen before an "exit" event fires.
+exit_timeout_seconds = 60
+
+# Notifier targets (Discord webhook, generic HTTP POST, etc.).
+# Each notifier needs a `kind` and a `target`.
+[[notifiers]]
+kind = "discord"
+target = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
