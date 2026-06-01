@@ -12,7 +12,7 @@ updated_at: "2026-05-27"
 | -------- | ----------- | ------ | ------------ | ------------- | ------- | ------ |
 | 01-001 | Config & Device Mapping Loading | feature/current/bluetooth-presence-notifier/story-01-001-config-device-mapping-loading | None | Parallel-safe: true | src/config/ |
 | 01-002 | BLE Scanning Loop | feature/current/bluetooth-presence-notifier/story-01-002-ble-scanning-loop | None | Parallel-safe: true | src/bluetooth/ | [x] Done |
-| 01-003 | Device State Tracking Structures | feature/current/bluetooth-presence-notifier/story-01-003-device-state-tracking-structures | None | Parallel-safe: true | src/state/ |
+| 01-003 | Device State Tracking Structures | feature/current/bluetooth-presence-notifier/story-01-003-device-state-tracking-structures | None | Parallel-safe: true | src/state/ | [x] Done |
 | 02-001 | Enter/Exit Detection with Debounce | feature/current/bluetooth-presence-notifier/story-02-001-enter-exit-detection-with-debounce | 01-001, 01-002, 01-003 | Parallel-safe: true | src/detection/ |
 | 03-001 | Pluggable Notifier Trait & Discord Webhook | feature/current/bluetooth-presence-notifier/story-03-001-pluggable-notifier-trait-and-discord-webhook | 02-001 | Parallel-safe: true | src/notifier/ |
 | 03-002 | Docker Multi-Arch Packaging | feature/current/bluetooth-presence-notifier/story-03-002-docker-multi-arch-packaging | 01-001, 01-002, 01-003 | Parallel-safe: true | Dockerfile, docker-compose.yml |

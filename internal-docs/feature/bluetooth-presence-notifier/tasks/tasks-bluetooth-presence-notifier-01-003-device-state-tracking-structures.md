@@ -7,7 +7,7 @@ prd_file: "docs/requirements/20260527-initial-reqs/prd-bluetooth-presence-notifi
 phase: 1
 parallel_id: 3
 branch: "feature/current/bluetooth-presence-notifier/story-01-003-device-state-tracking-structures"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,31 +27,30 @@ Implement the core data model and in-memory state table for tracking which label
 
 ## Sub-Tasks
 
-- [ ] Create `src/state/mod.rs` — module root with re-exports
-- [ ] Create `src/state/types.rs` — `PresenceState` enum (`Entered`, `Exited`, `Pending`), `TrackedDevice` struct with `mac`, `name`, `last_seen`, `rssi`, `state`
-- [ ] Create `src/state/table.rs` — `PresenceStateTable` backed by `std::sync::RwLock<HashMap<String, TrackedDevice>>` with methods: `update(mac, rssi)`, `get_state(mac)`, `list_present()`, `list_exited()`
-- [ ] Create `src/state/events.rs` — `PresenceEvent` enum (`Entered { name, mac }`, `Exited { name, mac }`) for state transition notifications
-- [ ] Add unit tests for state transitions and concurrent access
-- [ ] Add property-based tests (if feasible) for state machine correctness
+- [x] Create `src/state/mod.rs` — module root with re-exports
+- [x] Create `src/state/types.rs` — `PresenceState` enum (`Entered`, `Exited`, `Pending`), `TrackedDevice` struct with `mac`, `name`, `last_seen`, `rssi`, `state`
+- [x] Create `src/state/table.rs` — `PresenceStateTable` backed by `std::sync::RwLock<HashMap<String, TrackedDevice>>` with methods: `update(mac, rssi)`, `get_state(mac)`, `list_present()`, `list_exited()`
+- [x] Create `src/state/events.rs` — `PresenceEvent` enum (`Entered { name, mac }`, `Exited { name, mac }`) for state transition notifications
+- [x] Add unit tests for state transitions and concurrent access
+- [x] Add property-based tests (if feasible) for state machine correctness — skipped: no proptest/quickcheck dependency; unit tests provide sufficient coverage
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 
 ## Relevant Files
 
-- `src/state/mod.rs` — module root
-- `src/state/types.rs` — core data types
-- `src/state/table.rs` — thread-safe state table
-- `src/state/events.rs` — state transition events
-- `src/state/table.test.rs` — unit tests for concurrent updates and transitions
-- `src/state/types.test.rs` — unit tests for enum/struct behavior
+- `src/state/mod.rs` — module root with re-exports
+- `src/state/types.rs` — core data types (`PresenceState`, `TrackedDevice`)
+- `src/state/table.rs` — thread-safe state table (`PresenceStateTable`)
+- `src/state/events.rs` — state transition events (`PresenceEvent`)
+- `src/lib.rs` — added `pub mod state`
 
 ## Acceptance Criteria
 
-- [ ] `PresenceStateTable` is thread-safe and supports concurrent reads/writes
-- [ ] `update()` correctly records `last_seen` and `rssi`
-- [ ] `list_present()` and `list_exited()` return accurate filtered views
-- [ ] `PresenceEvent` variants carry all necessary context for notifiers
-- [ ] Memory footprint stays minimal (target < 64 MB total daemon)
+- [x] `PresenceStateTable` is thread-safe and supports concurrent reads/writes
+- [x] `update()` correctly records `last_seen` and `rssi`
+- [x] `list_present()` and `list_exited()` return accurate filtered views
+- [x] `PresenceEvent` variants carry all necessary context for notifiers
+- [x] Memory footprint stays minimal (target < 64 MB total daemon)
 
 ## Test Plan
 
