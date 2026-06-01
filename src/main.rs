@@ -4,7 +4,6 @@ use clap::Parser;
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 use std::io::{self, Read};
-use directories::ProjectDirs;
 use glob::glob;
 use tracing::{Level, debug, info, warn, error};
 use tracing_subscriber::{fmt, EnvFilter, prelude::*};
@@ -56,6 +55,42 @@ struct Cli {
     /// Log file path (for file-based logging)
     #[arg(long)]
     log_file: Option<PathBuf>,
+
+    /// Run in daemon mode: continuously scan for BLE devices and emit presence events
+    #[arg(long)]
+    daemon: bool,
+}
+
+#[cfg(target_os = "linux")]
+async fn run_daemon(app_config: config::AppConfig, devices_config: config::DevicesConfig) -> Result<()> {
+    use std::sync::Arc;
+    use std::time::Duration;
+    use btnotify::bluetooth::{BlueZAdapter, spawn_scan_loop};
+    use btnotify::detection::{DetectionEngine, run_detection_loop};
+    use btnotify::state::PresenceStateTable;
+
+    info!("Starting btnotify daemon (BlueZ)");
+
+    let adapter = Arc::new(BlueZAdapter::new().await?);
+    let state_table = Arc::new(PresenceStateTable::new());
+    let engine = Arc::new(DetectionEngine::new(
+        app_config.clone(),
+        devices_config,
+        state_table,
+    ));
+
+    let scan_interval = Duration::from_secs(app_config.scan_interval_seconds);
+    let rx = spawn_scan_loop(adapter, scan_interval);
+
+    let exit_check_interval = Duration::from_secs(app_config.exit_timeout_seconds.max(5));
+    run_detection_loop(engine, rx, exit_check_interval).await;
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+async fn run_daemon(_app_config: config::AppConfig, _devices_config: config::DevicesConfig) -> Result<()> {
+    anyhow::bail!("Daemon mode requires a BLE adapter; only Linux (BlueZ) is currently supported");
 }
 
 fn process_content(source: &str, content: &str) -> Result<()> {
@@ -121,7 +156,7 @@ fn main() -> Result<()> {
     info!("Starting {}", MODULE_NAME);
 
     // Load application config
-    let _app_config = match config::load_config(cli.config.clone()) {
+    let app_config = match config::load_config(cli.config.clone()) {
         Ok(cfg) => {
             info!("Loaded config: scan_interval={}s, rssi_threshold={} dBm, enter_duration={}s, exit_timeout={}s",
                 cfg.scan_interval_seconds,
@@ -152,6 +187,16 @@ fn main() -> Result<()> {
             std::process::exit(1);
         }
     };
+
+    // Daemon mode: run continuous BLE scan + presence detection
+    if cli.daemon {
+        let rt = tokio::runtime::Runtime::new()?;
+        if let Err(e) = rt.block_on(run_daemon(app_config, devices_config)) {
+            error!("Daemon error: {e}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
 
     let inputs = cli.inputs.clone();
 

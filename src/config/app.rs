@@ -31,6 +31,10 @@ pub struct AppConfig {
     /// List of configured notifiers.
     #[serde(default)]
     pub notifiers: Vec<NotifierConfig>,
+
+    /// Whether to track devices not present in the device mapping.
+    #[serde(default = "default_track_unknown")]
+    pub track_unknown: bool,
 }
 
 fn default_scan_interval() -> u64 {
@@ -49,6 +53,10 @@ fn default_exit_timeout() -> u64 {
     60
 }
 
+fn default_track_unknown() -> bool {
+    false
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
@@ -57,6 +65,7 @@ impl Default for AppConfig {
             enter_duration_seconds: default_enter_duration(),
             exit_timeout_seconds: default_exit_timeout(),
             notifiers: Vec::new(),
+            track_unknown: false,
         }
     }
 }
