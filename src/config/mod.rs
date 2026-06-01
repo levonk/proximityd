@@ -7,6 +7,6 @@ pub mod app;
 pub mod devices;
 pub mod loader;
 
-pub use app::AppConfig;
+pub use app::{AppConfig, NotifierConfig};
 pub use devices::{DeviceConfig, DevicesConfig};
 pub use loader::{load_config, load_devices};

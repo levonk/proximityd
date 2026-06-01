@@ -5,6 +5,7 @@ use tokio::time::interval;
 use tracing::{debug, info};
 
 use crate::bluetooth::types::ScannedDevice;
+use crate::notifier::NotifierRegistry;
 use crate::state::PresenceEvent;
 
 use super::engine::DetectionEngine;
@@ -15,16 +16,18 @@ use super::engine::DetectionEngine;
 /// * `engine` — The [`DetectionEngine`] to evaluate scan results against.
 /// * `mut rx` — Receiver channel for [`ScannedDevice`] sightings from the scan loop.
 /// * `exit_check_interval` — How often to poll for exit conditions.
+/// * `notifiers` — Optional [`NotifierRegistry`] to dispatch presence events.
 ///
 /// # Behavior
 /// * Each received scan result is fed into `engine.evaluate_scan()`.
-/// * Any emitted [`PresenceEvent`] is logged at `info` level.
+/// * Any emitted [`PresenceEvent`] is logged at `info` level and dispatched to notifiers.
 /// * Every `exit_check_interval`, `engine.check_exits()` is called and results are logged.
 /// * If the channel closes, the loop exits cleanly.
 pub async fn run_detection_loop(
     engine: Arc<DetectionEngine>,
     mut rx: mpsc::Receiver<ScannedDevice>,
     exit_check_interval: Duration,
+    notifiers: Option<Arc<NotifierRegistry>>,
 ) {
     info!(
         "Starting detection loop (exit check every {:?})",
@@ -41,11 +44,13 @@ pub async fn run_detection_loop(
                     Some(device) => {
                         debug!(mac = %device.mac, rssi = device.rssi, "Evaluating scan result");
                         match engine.evaluate_scan(&device.mac, device.rssi) {
-                            Some(PresenceEvent::Entered { ref name, ref mac }) => {
+                            Some(ref ev @ PresenceEvent::Entered { ref name, ref mac }) => {
                                 info!(mac = %mac, name = %name, "PRESENCE: Device entered");
+                                dispatch_notifiers(notifiers.as_ref(), ev);
                             }
-                            Some(PresenceEvent::Exited { ref name, ref mac }) => {
+                            Some(ref ev @ PresenceEvent::Exited { ref name, ref mac }) => {
                                 info!(mac = %mac, name = %name, "PRESENCE: Device exited");
+                                dispatch_notifiers(notifiers.as_ref(), ev);
                             }
                             None => {}
                         }
@@ -60,7 +65,7 @@ pub async fn run_detection_loop(
             // Periodic exit check
             _ = exit_timer.tick() => {
                 let events = engine.check_exits();
-                for ev in events {
+                for ev in &events {
                     match ev {
                         PresenceEvent::Entered { name, mac } => {
                             info!(mac = %mac, name = %name, "PRESENCE: Device entered (exit check)");
@@ -70,8 +75,21 @@ pub async fn run_detection_loop(
                         }
                     }
                 }
+                for ev in events {
+                    dispatch_notifiers(notifiers.as_ref(), &ev);
+                }
             }
         }
+    }
+}
+
+fn dispatch_notifiers(notifiers: Option<&Arc<NotifierRegistry>>, event: &PresenceEvent) {
+    if let Some(registry) = notifiers {
+        let registry = Arc::clone(registry);
+        let event = event.clone();
+        tokio::task::spawn_blocking(move || {
+            registry.dispatch(&event);
+        });
     }
 }
 
@@ -118,7 +136,7 @@ mod tests {
 
         // Spawn detection loop
         let handle = tokio::spawn(async move {
-            run_detection_loop(engine, rx, Duration::from_secs(1)).await;
+            run_detection_loop(engine, rx, Duration::from_secs(1), None).await;
         });
 
         // Send a scan result, wait for debounce, send again
@@ -150,7 +168,7 @@ mod tests {
         let (_tx, rx) = mpsc::channel(16);
 
         let handle = tokio::spawn(async move {
-            run_detection_loop(engine, rx, Duration::from_secs(1)).await;
+            run_detection_loop(engine, rx, Duration::from_secs(1), None).await;
         });
 
         // Close channel immediately

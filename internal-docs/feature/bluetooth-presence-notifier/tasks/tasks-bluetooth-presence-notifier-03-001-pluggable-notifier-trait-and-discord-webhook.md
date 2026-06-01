@@ -7,7 +7,7 @@ prd_file: "docs/requirements/20260527-initial-reqs/prd-bluetooth-presence-notifi
 phase: 3
 parallel_id: 1
 branch: "feature/current/bluetooth-presence-notifier/story-03-001-pluggable-notifier-trait-and-discord-webhook"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["02-001"]
@@ -27,17 +27,17 @@ Implement a trait-based notification system with a Discord webhook backend. The 
 
 ## Sub-Tasks
 
-- [ ] Create `src/notifier/mod.rs` — module root with re-exports
-- [ ] Create `src/notifier/trait.rs` — `Notifier` trait with `notify(event: &PresenceEvent) -> Result<()>`
-- [ ] Create `src/notifier/discord.rs` — `DiscordNotifier` implementing webhook POST via `reqwest`
+- [x] Create `src/notifier/mod.rs` — module root with re-exports
+- [x] Create `src/notifier/trait.rs` — `Notifier` trait with `notify(event: &PresenceEvent) -> Result<()>`
+- [x] Create `src/notifier/discord.rs` — `DiscordNotifier` implementing webhook POST via `reqwest`
   - Support `discord_webhook_url` and `discord_bot_token` + channel ID
   - Format: `"{name} has entered the area"` / `"{name} has exited the area"`
   - Optional: include timestamp and MAC (controlled by config flag)
-- [ ] Create `src/notifier/registry.rs` — `NotifierRegistry` that builds active notifiers from `config.toml` `notifiers` array
-- [ ] Add `reqwest` to `Cargo.toml`
-- [ ] Add unit tests for `DiscordNotifier` message formatting using `mockito` or `wiremock`
-- [ ] Add unit tests for `NotifierRegistry` builder logic
-- [ ] Wire notifier calls into detection engine so transitions trigger notifications
+- [x] Create `src/notifier/registry.rs` — `NotifierRegistry` that builds active notifiers from `config.toml` `notifiers` array
+- [x] Add `reqwest` to `Cargo.toml`
+- [x] Add unit tests for `DiscordNotifier` message formatting using `mockito` or `wiremock`
+- [x] Add unit tests for `NotifierRegistry` builder logic
+- [x] Wire notifier calls into detection engine so transitions trigger notifications
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 
@@ -54,11 +54,11 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Acceptance Criteria
 
-- [ ] Discord webhook delivers `"{name} has entered/exited the area"` messages
-- [ ] Bot token path works and posts to specified channel ID
-- [ ] Webhook URL and bot token are never hardcoded; loaded from env or secrets
-- [ ] Retry up to 3 times with exponential backoff on delivery failure (NFR-2)
-- [ ] New notifier backends can be added by implementing the `Notifier` trait + registering in `registry.rs`
+- [x] Discord webhook delivers `"{name} has entered/exited the area"` messages
+- [x] Bot token path works and posts to specified channel ID
+- [x] Webhook URL and bot token are never hardcoded; loaded from env or secrets
+- [x] Retry up to 3 times with exponential backoff on delivery failure (NFR-2)
+- [x] New notifier backends can be added by implementing the `Notifier` trait + registering in `registry.rs`
 
 ## Test Plan
 

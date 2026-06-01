@@ -67,9 +67,20 @@ async fn run_daemon(app_config: config::AppConfig, devices_config: config::Devic
     use std::time::Duration;
     use btnotify::bluetooth::{BlueZAdapter, spawn_scan_loop};
     use btnotify::detection::{DetectionEngine, run_detection_loop};
+    use btnotify::notifier::NotifierRegistry;
     use btnotify::state::PresenceStateTable;
 
     info!("Starting btnotify daemon (BlueZ)");
+
+    let notifiers = NotifierRegistry::from_config(&app_config)
+        .context("Failed to initialise notifiers from config")?;
+    let notifiers = if notifiers.is_empty() {
+        info!("No notifiers configured; notifications disabled");
+        None
+    } else {
+        info!("{} notifier(s) active", notifiers.len());
+        Some(Arc::new(notifiers))
+    };
 
     let adapter = Arc::new(BlueZAdapter::new().await?);
     let state_table = Arc::new(PresenceStateTable::new());
@@ -83,7 +94,7 @@ async fn run_daemon(app_config: config::AppConfig, devices_config: config::Devic
     let rx = spawn_scan_loop(adapter, scan_interval);
 
     let exit_check_interval = Duration::from_secs(app_config.exit_timeout_seconds.max(5));
-    run_detection_loop(engine, rx, exit_check_interval).await;
+    run_detection_loop(engine, rx, exit_check_interval, notifiers).await;
 
     Ok(())
 }

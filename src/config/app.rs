@@ -6,7 +6,20 @@ pub struct NotifierConfig {
     /// Notifier type (e.g., "discord", "webhook").
     pub kind: String,
     /// Target URL or identifier for the notifier.
+    #[serde(default)]
     pub target: String,
+    /// Optional bot token for Discord bot API access.
+    #[serde(default)]
+    pub token: Option<String>,
+    /// Optional channel ID when using a bot token.
+    #[serde(default)]
+    pub channel_id: Option<String>,
+    /// Include timestamp in notification messages.
+    #[serde(default)]
+    pub include_timestamp: bool,
+    /// Include MAC address in notification messages.
+    #[serde(default)]
+    pub include_mac: bool,
 }
 
 /// Application-level behavior configuration.
