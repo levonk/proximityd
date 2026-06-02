@@ -17,7 +17,7 @@ updated_at: "2026-05-27"
 | 03-001 | Pluggable Notifier Trait & Discord Webhook | feature/current/bluetooth-presence-notifier/story-03-001-pluggable-notifier-trait-and-discord-webhook | 02-001 | Parallel-safe: true | src/notifier/ | [x] Done |
 | 03-002 | Docker Multi-Arch Packaging | feature/current/bluetooth-presence-notifier/story-03-002-docker-multi-arch-packaging | 01-001, 01-002, 01-003 | Parallel-safe: true | Dockerfile, docker-compose.yml | [x] Done |
 | 04-001 | Observability, Error Handling & Retry Logic | feature/current/bluetooth-presence-notifier/story-04-001-observability-error-handling-and-retry-logic | 03-001 | Parallel-safe: true | src/ (logging, retry, healthcheck) | [x] Done |
-| 04-002 | Documentation & Repo Polish | feature/current/bluetooth-presence-notifier/story-04-002-documentation-and-repo-polish | 03-002 | Parallel-safe: true | README.md, docs/, examples/ | [ ] Todo |
+| 04-002 | Documentation & Repo Polish | feature/current/bluetooth-presence-notifier/story-04-002-documentation-and-repo-polish | 03-002 | Parallel-safe: true | README.md, docs/, examples/ | [x] Done |
 
 ## Phase Overview
 
