@@ -59,6 +59,11 @@ struct Cli {
     /// Run in daemon mode: continuously scan for BLE devices and emit presence events
     #[arg(long)]
     daemon: bool,
+
+    /// Perform a health check and exit. Exit code 0 = healthy, 1 = unhealthy.
+    /// For use with Docker HEALTHCHECK.
+    #[arg(long)]
+    health_check: bool,
 }
 
 #[cfg(target_os = "linux")]
@@ -91,11 +96,26 @@ async fn run_daemon(app_config: config::AppConfig, devices_config: config::Devic
     ));
 
     let scan_interval = Duration::from_secs(app_config.scan_interval_seconds);
-    let rx = spawn_scan_loop(adapter, scan_interval);
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let rx = spawn_scan_loop(adapter, scan_interval, shutdown_rx.clone());
+
+    // Spawn signal handler to trigger graceful shutdown
+    let shutdown_tx_signal = shutdown_tx.clone();
+    tokio::spawn(async move {
+        let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {},
+            _ = sigterm.recv() => {},
+        }
+        info!("Shutdown signal received, initiating graceful shutdown");
+        shutdown_tx_signal.send(true).ok();
+    });
 
     let exit_check_interval = Duration::from_secs(app_config.exit_timeout_seconds.max(5));
-    run_detection_loop(engine, rx, exit_check_interval, notifiers).await;
+    run_detection_loop(engine, rx, exit_check_interval, notifiers, shutdown_rx).await;
 
+    info!("Daemon shutdown complete");
     Ok(())
 }
 
@@ -110,36 +130,76 @@ fn process_content(source: &str, content: &str) -> Result<()> {
     Ok(())
 }
 
-fn init_logging(cli: &Cli) -> Result<()> {
-    let log_level = match cli.verbose {
-        0 => Level::INFO,
-        1 => Level::DEBUG,
-        _ => Level::TRACE,
-    };
+fn resolve_log_level(cli: &Cli, app_config: Option<&config::AppConfig>) -> String {
+    // Precedence: env var > CLI flags > config file > default (INFO)
+    if let Ok(env_level) = std::env::var("BTNOTIFY_LOG_LEVEL") {
+        return env_level;
+    }
 
-    let effective_level = if cli.quiet {
-        Level::ERROR
-    } else {
-        log_level
-    };
+    if cli.quiet {
+        return Level::ERROR.to_string();
+    }
 
+    if cli.verbose > 0 {
+        let level = match cli.verbose {
+            1 => Level::DEBUG,
+            _ => Level::TRACE,
+        };
+        return level.to_string();
+    }
+
+    if let Some(cfg) = app_config {
+        return cfg.log_level.clone();
+    }
+
+    Level::INFO.to_string()
+}
+
+fn init_logging(cli: &Cli, app_config: Option<&config::AppConfig>) -> Result<()> {
     if cli.nocolor {
         std::env::set_var("NO_COLOR", "1");
     }
 
+    let level_str = resolve_log_level(cli, app_config);
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(effective_level.to_string()));
+        .unwrap_or_else(|_| EnvFilter::new(&level_str));
 
-    let fmt_layer = fmt::layer()
-        .with_writer(std::io::stderr)
-        .with_ansi(*COLORS_ENABLED)
-        .with_target(true)
-        .with_level(true);
+    let is_terminal = atty::is(atty::Stream::Stderr);
+    let explicit_format = std::env::var("BTNOTIFY_LOG_FORMAT").ok();
+    let use_json = match explicit_format.as_deref() {
+        Some("json") => true,
+        Some("pretty") => false,
+        Some(other) => {
+            eprintln!("Warning: unknown BTNOTIFY_LOG_FORMAT='{other}', expected 'json' or 'pretty'. Falling back to auto-detection.");
+            !is_terminal
+        }
+        None => !is_terminal,
+    };
 
-    tracing_subscriber::registry()
-        .with(env_filter)
-        .with(fmt_layer)
-        .init();
+    if use_json {
+        let fmt_layer = fmt::layer()
+            .with_writer(std::io::stderr)
+            .json()
+            .with_target(true)
+            .with_level(true)
+            .with_current_span(true);
+
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(fmt_layer)
+            .init();
+    } else {
+        let fmt_layer = fmt::layer()
+            .with_writer(std::io::stderr)
+            .with_ansi(*COLORS_ENABLED)
+            .with_target(true)
+            .with_level(true);
+
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(fmt_layer)
+            .init();
+    }
 
     Ok(())
 }
@@ -155,49 +215,61 @@ fn main() -> Result<()> {
         std::process::exit(0);
     }
 
-    // Initialize logging
-    init_logging(&cli)?;
-
-    // Handle Ctrl+C gracefully
-    ctrlc::set_handler(move || {
-        error!("Received Ctrl+C, exiting...");
-        std::process::exit(130);
-    })?;
-
-    info!("Starting {}", MODULE_NAME);
-
-    // Load application config
-    let app_config = match config::load_config(cli.config.clone()) {
-        Ok(cfg) => {
-            info!("Loaded config: scan_interval={}s, rssi_threshold={} dBm, enter_duration={}s, exit_timeout={}s",
-                cfg.scan_interval_seconds,
-                cfg.enter_rssi_threshold_dbm,
-                cfg.enter_duration_seconds,
-                cfg.exit_timeout_seconds
-            );
-            cfg
+    // Docker HEALTHCHECK — quick check without loading full config
+    if cli.health_check {
+        match btnotify::health::check_heartbeat_file() {
+            Ok(()) => {
+                println!("healthy");
+                std::process::exit(0);
+            }
+            Err(msg) => {
+                eprintln!("unhealthy: {}", msg);
+                std::process::exit(1);
+            }
         }
+    }
+
+    // Load application config (before logging so we can use config for log level)
+    let app_config = match config::load_config(cli.config.clone()) {
+        Ok(cfg) => cfg,
         Err(e) => {
-            error!("Failed to load config: {e}");
+            eprintln!("Failed to load config: {e}");
             std::process::exit(1);
         }
     };
 
     // Load device mappings (optional — missing file is OK)
     let devices_config = match config::load_devices(cli.devices.clone()) {
-        Ok(cfg) => {
-            if cfg.is_empty() {
-                warn!("No devices configured in devices.toml");
-            } else {
-                info!("Loaded {} device mapping(s)", cfg.devices.len());
-            }
-            cfg
-        }
+        Ok(cfg) => cfg,
         Err(e) => {
-            error!("Failed to load devices config: {e}");
+            eprintln!("Failed to load devices config: {e}");
             std::process::exit(1);
         }
     };
+
+    // Initialize logging with config-aware level resolution
+    init_logging(&cli, Some(&app_config))?;
+
+    // Session correlation ID for structured logging
+    let _session = {
+        let correlation_id = format!("bt-{}", std::process::id());
+        tracing::info_span!("btnotify", correlation_id = %correlation_id).entered()
+    };
+
+    info!("Starting {}", MODULE_NAME);
+    info!("Loaded config: scan_interval={}s, rssi_threshold={} dBm, enter_duration={}s, exit_timeout={}s, log_level={}",
+        app_config.scan_interval_seconds,
+        app_config.enter_rssi_threshold_dbm,
+        app_config.enter_duration_seconds,
+        app_config.exit_timeout_seconds,
+        app_config.log_level
+    );
+
+    if devices_config.is_empty() {
+        warn!("No devices configured in devices.toml");
+    } else {
+        info!("Loaded {} device mapping(s)", devices_config.devices.len());
+    }
 
     // Daemon mode: run continuous BLE scan + presence detection
     if cli.daemon {
