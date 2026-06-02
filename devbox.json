@@ -1,0 +1,46 @@
+{
+  "name": "btnotify",
+  "version": "0.1.0",
+  "description": "A Rust CLI application",
+  "packages": [
+    "rustc",
+    "cargo",
+    "rust-analyzer",
+    "clippy",
+    "rustfmt",
+    "just",
+    "cargo-watch",
+    "cargo-tarpaulin",
+    "cargo-audit",
+    "pkg-config"
+    
+  ],
+  "hooks": {
+    "on_create": [
+      "just bootstrap-internal"
+    ]
+  },
+  "scripts": {
+    "bootstrap": "just bootstrap-internal",
+    "doctor": "just doctor-internal",
+    "clean": "just clean-internal",
+    "build": "just build-internal",
+    "lint": "just lint-internal",
+    "test": "just test-internal",
+    "typecheck": "just typecheck-internal",
+    "format-check": "just format-check-internal",
+    "dev": "just dev-internal",
+    "debug": "just debug-internal",
+    "install": "just install-internal",
+    "release": "just release-internal",
+    "docker-build": "just docker-build-internal",
+    "docker-run": "just docker-run-internal",
+    "docker-stop": "just docker-stop-internal"
+  },
+  "env": {
+    "RUST_LOG": "info",
+    "RUST_BACKTRACE": "1",
+    
+    
+  }
+}

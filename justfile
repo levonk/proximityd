@@ -1,0 +1,348 @@
+# btnotify - Rust CLI Development Commands
+# Standard justfile following ADR-20260131001
+
+# Default recipe
+default:
+    @just --list
+
+# Normal targets - Developer interface (REQUIRED)
+clean:
+    devbox run clean
+
+dev:
+    devbox run dev
+
+build:
+    devbox run build
+
+test:
+    devbox run test --quiet
+
+lint:
+    devbox run lint
+
+typecheck:
+    devbox run typecheck
+
+release:
+    devbox run release
+
+# Bootstrap recipes (REQUIRED)
+bootstrap:
+    devbox run bootstrap
+
+bootstrap-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Install dependencies and initialize memory management
+    echo "🦀 Rust CLI bootstrap complete for btnotify!"
+
+    # Initialize tkr for task management
+    if command -v tkr >/dev/null 2>&1; then
+        if [ ! -d ".tickets" ]; then
+            echo "[bootstrap] Initializing tkr..."
+            tkr init || echo "[bootstrap] tkr init failed"
+        else
+            echo "[bootstrap] tkr already initialized"
+        fi
+    fi
+
+    # Create memory directory structure for Obsidian
+    echo "[bootstrap] Setting up memory structure..."
+    mkdir -p memory/{00-inbox,01-projects,02-decisions,03-patterns,04-learnings,05-references,98-logs,99-daily}
+
+    # Create Obsidian configuration if needed
+    if [ ! -d ".obsidian" ]; then
+        mkdir -p .obsidian
+        echo "# Obsidian configuration" > .obsidian/config.md
+    fi
+
+# Prime recipes (REQUIRED)
+prime:
+    @echo "🚀 Priming code indexing and analysis tools..."
+    @devbox run prime
+
+prime-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Update repository and index documentation
+    echo "[prime] Updating repository..."
+    git fetch || echo "[prime] git fetch failed (check remote connectivity)"
+
+    # qmd memory indexing
+    if command -v qmd >/dev/null 2>&1; then
+        echo "[prime] Indexing documentation with qmd..."
+        qmd index docs/ internal-docs/ memory/ README.md || echo "[prime] qmd indexing failed"
+        echo "[prime] qmd indexing complete."
+    else
+        echo "[prime] Skipping qmd (not installed)"
+    fi
+
+    echo "[prime] Rust CLI priming complete!"
+
+# Health and diagnostics (REQUIRED)
+doctor:
+    devbox run doctor
+
+doctor-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Check Rust CLI environment
+    echo "🔍 Checking btnotify development environment..."
+    if ! cargo --version >/dev/null 2>&1; then
+        echo "❌ Error: cargo not found" >&2
+        echo "💡 Suggestion: Ensure Rust toolchain is installed" >&2
+        exit 1
+    fi
+    if ! just --version >/dev/null 2>&1; then
+        echo "❌ Error: just not found" >&2
+        echo "💡 Suggestion: Ensure just is installed" >&2
+        exit 1
+    fi
+    if [ ! -f Cargo.toml ]; then
+        echo "❌ Error: Cargo.toml not found (expected in project root)" >&2
+        exit 1
+    fi
+    echo "✅ OK: Rust toolchain + just + Cargo.toml present"
+
+    # Check for memory management tools
+    if command -v qmd >/dev/null 2>&1; then
+        echo "✅ OK: qmd available for memory search"
+    else
+        echo "⚠️  WARNING: qmd not found (install with: cargo install qmd)"
+    fi
+
+    if command -v tkr >/dev/null 2>&1; then
+        echo "✅ OK: tkr available for task management"
+    else
+        echo "⚠️  WARNING: tkr not found (install from: https://github.com/levonk/tkr)"
+    fi
+
+    # Check for memory structure
+    if [ -d memory ]; then
+        echo "✅ OK: memory/ directory found"
+    else
+        echo "⚠️  WARNING: memory/ directory missing (run 'just bootstrap' to create)"
+    fi
+
+    echo "🚀 Ready to develop btnotify!"
+
+# Quality checks (OPTIONAL but RECOMMENDED)
+quality:
+    just format-check
+    just lint
+    just test
+    just typecheck
+
+format-check:
+    @echo "Checking code format..."
+    @devbox run format-check
+
+# Memory and task management targets (NEW)
+doc-search:
+    @echo "🔍 Searching documentation and memory..."
+    @devbox run doc-search
+
+doc-search-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Search memory and documentation with qmd
+    if command -v qmd >/dev/null 2>&1; then
+        query="${1:-.}"  # Default to show all if no query
+        qmd search "$query" | head -20
+    else
+        echo "qmd not found - falling back to ripgrep..."
+        rg --type md "$query" docs/ internal-docs/ memory/ || true
+    fi
+
+tasks:
+    @echo "📋 Listing current tasks..."
+    @devbox run tasks
+
+tasks-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # List current tasks
+    if command -v tkr >/dev/null 2>&1; then
+        tkr list --status=open
+    else
+        echo "tkr not found"
+    fi
+
+task-ready:
+    @echo "🎯 Getting next available task..."
+    @devbox run task-ready
+
+task-ready-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Get next available task
+    if command -v tkr >/dev/null 2>&1; then
+        tkr ready
+    else
+        echo "tkr not found"
+    fi
+
+task-start:
+    @echo "🚀 Starting available task..."
+    @devbox run task-start
+
+task-start-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Start working on available task
+    if command -v tkr >/dev/null 2>&1; then
+        task_id=$(tkr ready | head -1 | cut -d' ' -f1)
+        if [ -n "$task_id" ]; then
+            tkr start "$task_id"
+            echo "Started task: $task_id"
+        else
+            echo "No available tasks"
+        fi
+    else
+        echo "tkr not found"
+    fi
+
+# Language-specific commands for Rust CLI
+# Development setup (OPTIONAL)
+setup:
+    echo "🦀 Rust CLI development environment ready!"
+
+# Internal targets - Actual implementation
+clean-internal:
+    # Clean build artifacts
+    cargo clean
+    echo "🧹 Build artifacts removed"
+
+build-internal:
+    # Build the project in debug mode
+    cargo build
+
+release-internal:
+    # Full release pipeline: quality checks + build
+    echo "🚀 Starting release pipeline for btnotify..."
+    just lint-internal
+    just test-internal
+    just typecheck-internal
+    just build-release-internal
+    echo "✅ Release complete! Binary available at target/release/btnotify"
+
+build-release-internal:
+    # Build the project in release mode
+    cargo build --release
+
+debug-internal:
+    # Build the project in debug mode
+    cargo build
+
+install-internal:
+    # Install the binary locally
+    cargo install --path .
+
+lint-internal:
+    # Lint the code using clippy
+    cargo clippy -- -D warnings
+
+test-internal:
+    # Run tests
+    cargo test
+
+typecheck-internal:
+    # Run type checking (cargo check)
+    cargo check
+
+dev-internal:
+    # Run the application in development mode
+    cargo run
+
+run-internal:
+    # Run the application with arguments
+    cargo run
+
+# Additional Rust-specific targets
+test-coverage-internal:
+    # Run tests with coverage
+    cargo tarpaulin --out Html
+
+format-internal:
+    # Format code with rustfmt
+    cargo fmt
+
+format-check-internal:
+    # Check code format
+    cargo fmt -- --check
+
+doc-internal:
+    # Generate documentation
+    cargo doc --open
+
+audit-internal:
+    # Audit dependencies
+    cargo audit
+
+# Docker recipes
+docker-build:
+    @echo "Building btnotify Docker image..."
+    @devbox run docker-build
+
+docker-build-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ./run.sh build
+
+docker-run:
+    @echo "Running btnotify container..."
+    @devbox run docker-run
+
+docker-run-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ./run.sh compose-up
+
+docker-stop:
+    @echo "Stopping btnotify container..."
+    @devbox run docker-stop
+
+docker-stop-internal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ./run.sh compose-down
+
+# Help target
+help:
+    echo "🦀 btnotify - Rust CLI Application"
+    echo ""
+    echo "Standard commands:"
+    echo "  just bootstrap    - Initialize the development environment"
+    echo "  just build        - Build the project"
+    echo "  just test         - Run tests"
+    echo "  just lint         - Run linting"
+    echo "  just typecheck    - Run type checking"
+    echo "  just dev           - Run in development mode"
+    echo "  just clean         - Clean build artifacts"
+    echo "  just doctor        - Check environment health"
+    echo "  just quality       - Run all quality checks"
+    echo "  just release       - Full release pipeline"
+    echo "  just prime         - Index documentation and update repository"
+    echo ""
+    echo "Memory & Task Management:"
+    echo "  just doc-search    - Search documentation and memory"
+    echo "  just tasks         - List current tasks"
+    echo "  just task-ready    - Get next available task"
+    echo "  just task-start    - Start working on available task"
+    echo ""
+    echo "Docker commands:"
+    echo "  just docker-build  - Build Docker image"
+    echo "  just docker-run    - Run with docker-compose"
+    echo "  just docker-stop   - Stop docker-compose services"
+    echo ""
+    echo "Rust-specific commands:"
+    echo "  just debug         - Build in debug mode"
+    echo "  just install       - Install binary locally"
+    echo "  just test-coverage - Run tests with coverage"
+    echo "  just format        - Format code"
+    echo "  just doc           - Generate documentation"
+    echo "  just audit         - Audit dependencies"
+    echo ""
+    echo "Internal commands (for devbox scripts):"
+    echo "  just *-internal    - Internal implementations"
