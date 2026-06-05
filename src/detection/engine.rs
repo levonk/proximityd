@@ -1,9 +1,10 @@
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 use tracing::{debug, info};
 
 use crate::config::{AppConfig, DevicesConfig};
+use crate::signals::{RawSignal, SignalLogger};
 use crate::state::{PresenceEvent, PresenceState, PresenceStateTable};
 
 use super::debounce::DebounceTimer;
@@ -15,6 +16,7 @@ pub struct DetectionEngine {
     devices: DevicesConfig,
     state_table: Arc<PresenceStateTable>,
     timers: RwLock<HashMap<String, DebounceTimer>>,
+    signal_logger: Option<Mutex<SignalLogger>>,
 }
 
 impl DetectionEngine {
@@ -29,7 +31,14 @@ impl DetectionEngine {
             devices,
             state_table,
             timers: RwLock::new(HashMap::new()),
+            signal_logger: None,
         }
+    }
+
+    /// Attach a signal logger (stub wiring for 01-001; full wiring in 01-003/01-004).
+    pub fn with_signal_logger(mut self, logger: SignalLogger) -> Self {
+        self.signal_logger = Some(Mutex::new(logger));
+        self
     }
 
     /// Evaluate a single scan result and return a presence event if a state
@@ -43,6 +52,21 @@ impl DetectionEngine {
     /// `Some(PresenceEvent)` if the device enters or exits, otherwise `None`.
     pub fn evaluate_scan(&self, mac: impl Into<String>, rssi: i16) -> Option<PresenceEvent> {
         let mac = mac.into();
+
+        // Stub wiring: log every raw signal sighting before evaluation.
+        // Full wiring (configurable scanner source, etc.) comes in 01-003/01-004.
+        if let Some(ref logger) = self.signal_logger {
+            let raw = RawSignal {
+                scanner: "ble".into(),
+                id_type: "mac".into(),
+                id_value: mac.clone(),
+                rssi: Some(i32::from(rssi)),
+                metadata: None,
+            };
+            if let Ok(guard) = logger.lock() {
+                let _ = guard.log(&raw);
+            }
+        }
 
         // Ignore unknown devices unless tracking is enabled.
         let is_known = self.devices.get(&mac).is_some();
@@ -66,19 +90,19 @@ impl DetectionEngine {
         // Check for enter transition.
         if rssi >= self.config.enter_rssi_threshold_dbm {
             if let Some(elapsed) = timer.enter_elapsed() {
-                if elapsed >= Duration::from_secs(self.config.enter_duration_seconds) {
-                    if current_state != Some(PresenceState::Entered) {
-                        let name = self
-                            .devices
-                            .get(&mac)
-                            .map(|d| d.name.clone())
-                            .unwrap_or_else(|| mac.clone());
+                if elapsed >= Duration::from_secs(self.config.enter_duration_seconds)
+                    && current_state != Some(PresenceState::Entered)
+                {
+                    let name = self
+                        .devices
+                        .get(&mac)
+                        .map(|d| d.name.clone())
+                        .unwrap_or_else(|| mac.clone());
 
-                        drop(timers);
-                        self.state_table.set_state(&mac, PresenceState::Entered);
-                        info!(mac = %mac, name = %name, "Device entered");
-                        return Some(PresenceEvent::Entered { name, mac });
-                    }
+                    drop(timers);
+                    self.state_table.set_state(&mac, PresenceState::Entered);
+                    info!(mac = %mac, name = %name, "Device entered");
+                    return Some(PresenceEvent::Entered { name, mac });
                 }
             }
         }
