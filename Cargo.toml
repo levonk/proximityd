@@ -1,12 +1,15 @@
 [package]
-name = "btnotify"
+name = "proximityd"
 version = "0.1.0"
 edition = "2021"
-description = "Bluetooth Low Energy presence detection service with pluggable notifications"
-repository = "https://github.com/levonk/btnotify"
+description = "Generic presence detection service with pluggable notifications"
+repository = "https://github.com/levonk/proximityd"
 license = "MIT OR Apache-2.0"
 keywords = ["bluetooth", "ble", "presence", "notifications", "discord", "home-automation"]
 categories = ["command-line-utilities", "network-programming"]
+
+[lib]
+name = "btnotify"
 
 [dependencies]
 clap = { version = "4.4", features = ["derive", "env"] }
@@ -21,17 +24,17 @@ serde_json = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "ansi"] }
 tracing-appender = "0.2"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 toml = "0.8"
 ansi_term = "0.12"
 once_cell = "1.18"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal"] }
+async-trait = "0.1"
 futures = "0.3"
+btleplug = "0.11"
 reqwest = { version = "0.12", features = ["json", "blocking"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 
-[target.'cfg(target_os = "linux")'.dependencies]
-bluez-async = "0.7"
 
 [dev-dependencies]
 assert_cmd = "2.0"

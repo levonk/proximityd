@@ -90,7 +90,16 @@ async fn run_daemon(
         Some(Arc::new(notifiers))
     };
 
-    let scanner: Arc<dyn Scanner> = Arc::new(BleScanner::new());
+    let ble_enabled = app_config
+        .scanner
+        .get("ble")
+        .map(|s| s.enabled)
+        .unwrap_or(true);
+    
+    let mut ble_scanner = BleScanner::new();
+    ble_scanner.set_enabled(ble_enabled);
+    
+    let scanner: Arc<dyn Scanner> = Arc::new(ble_scanner);
     let state_table = Arc::new(PresenceStateTable::new());
     let engine = Arc::new(DetectionEngine::new(
         app_config.clone(),
