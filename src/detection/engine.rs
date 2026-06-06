@@ -70,6 +70,7 @@ impl DetectionEngine {
 
         // Ignore unknown devices unless tracking is enabled.
         let is_known = self.devices.get(&mac).is_some();
+        #[allow(deprecated)]
         if !is_known && !self.config.track_unknown {
             debug!(mac = %mac, "Ignoring unknown device (track_unknown=false)");
             return None;
@@ -83,13 +84,16 @@ impl DetectionEngine {
             .entry(mac.clone())
             .or_insert_with(|| DebounceTimer::new(rssi));
 
+        #[allow(deprecated)]
         timer.record_sighting(rssi, self.config.enter_rssi_threshold_dbm);
 
         let current_state = self.state_table.get_state(&mac);
 
         // Check for enter transition.
+        #[allow(deprecated)]
         if rssi >= self.config.enter_rssi_threshold_dbm {
             if let Some(elapsed) = timer.enter_elapsed() {
+                #[allow(deprecated)]
                 if elapsed >= Duration::from_secs(self.config.enter_duration_seconds)
                     && current_state != Some(PresenceState::Entered)
                 {
@@ -113,6 +117,7 @@ impl DetectionEngine {
     /// Check all tracked devices for exit conditions and return any exit events.
     pub fn check_exits(&self) -> Vec<PresenceEvent> {
         let mut events = Vec::new();
+        #[allow(deprecated)]
         let timeout = Duration::from_secs(self.config.exit_timeout_seconds);
 
         // Collect the MACs of devices that may have exited.

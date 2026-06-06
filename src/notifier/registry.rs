@@ -73,7 +73,7 @@ fn build_discord(entry: &NotifierConfig) -> Result<DiscordNotifier> {
             .context("discord notifier with bot token requires channel_id")?;
         DiscordNotifier::from_bot_token(token.clone(), channel_id.clone())
     } else {
-        DiscordNotifier::from_webhook(entry.target.clone())
+        DiscordNotifier::from_webhook(entry.webhook_url.clone())
     };
 
     notifier = notifier.with_timestamp(entry.include_timestamp);

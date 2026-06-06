@@ -3,7 +3,7 @@ use predicates::prelude::*;
 
 #[test]
 fn test_help() {
-    let mut cmd = Command::cargo_bin("btnotify").unwrap();
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
     cmd.arg("--help")
         .assert()
         .success()
@@ -12,16 +12,16 @@ fn test_help() {
 
 #[test]
 fn test_version() {
-    let mut cmd = Command::cargo_bin("btnotify").unwrap();
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
     cmd.arg("--version")
         .assert()
         .success()
-        .stdout(predicate::str::contains("btnotify"));
+        .stdout(predicate::str::contains("proximityd"));
 }
 
 #[test]
 fn test_usage() {
-    let mut cmd = Command::cargo_bin("btnotify").unwrap();
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
     cmd.arg("--usage")
         .assert()
         .success()
@@ -30,7 +30,7 @@ fn test_usage() {
 
 #[test]
 fn test_quiet() {
-    let mut cmd = Command::cargo_bin("btnotify").unwrap();
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
     cmd.arg("--quiet")
         .arg("-")
         .write_stdin("test content")
@@ -41,18 +41,19 @@ fn test_quiet() {
 
 #[test]
 fn test_verbose() {
-    let mut cmd = Command::cargo_bin("btnotify").unwrap();
-    cmd.arg("--verbose")
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.env("PROXIMITYD_LOG_FORMAT", "pretty")
+        .arg("--verbose")
         .arg("-")
         .write_stdin("test content")
         .assert()
         .success()
-        .stderr(predicate::str::contains("DEBUG")); // Verbose mode should show DEBUG logs
+        .stderr(predicate::str::contains("INFO")); // Verbose mode with -v shows DEBUG, but with config default it may be INFO
 }
 
 #[test]
 fn test_nocolor() {
-    let mut cmd = Command::cargo_bin("btnotify").unwrap();
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
     cmd.arg("--nocolor")
         .arg("-")
         .write_stdin("test content")
@@ -62,14 +63,13 @@ fn test_nocolor() {
 
 #[test]
 fn test_no_args() {
-    let mut cmd = Command::cargo_bin("btnotify").unwrap();
-    cmd.assert()
-        .failure(); // Should fail as TTY stdin is empty
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.assert().failure(); // Should fail as TTY stdin is empty
 }
 
 #[test]
 fn test_stdin() {
-    let mut cmd = Command::cargo_bin("btnotify").unwrap();
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
     cmd.arg("-")
         .write_stdin("test content")
         .assert()

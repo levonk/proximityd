@@ -22,9 +22,9 @@ Generated from PRD: `internal-docs/feature/generic-presence-notify/prd-generic-p
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------ | ------------ | ------------- | ------- |
 | 01-001 | Signal Log SQLite Schema and Logger | [x] Done | feature/current/generic-presence-notify/story-01-001-signal-log | None | true | src/signals/ |
-| 01-002 | Rename btnotify to proximityd + Deprecation Wrapper | [ ] Todo | feature/current/generic-presence-notify/story-01-002-rename | None | true | root, Cargo.toml |
-| 01-003 | Scanner Trait and BLE btleplug Migration | [ ] Todo | feature/current/generic-presence-notify/story-01-003-scanner-trait | None | true | src/scanner/ |
-| 01-004 | Config Model and Legacy Migration | [ ] Todo | feature/current/generic-presence-notify/story-01-004-config-model | None | true | src/config/ |
+| 01-002 | Rename btnotify to proximityd + Deprecation Wrapper | [x] Done | feature/current/generic-presence-notify/story-01-002-rename | None | true | root, Cargo.toml |
+| 01-003 | Scanner Trait and BLE btleplug Migration | [~] In-Progress | feature/current/generic-presence-notify/story-01-003-scanner-trait | None | true | src/scanner/ |
+| 01-004 | Config Model and Legacy Migration | [x] Done | feature/current/generic-presence-notify/story-01-004-config-model | None | true | src/config/ |
 
 ### Phase 02 — Multi-Signal
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |

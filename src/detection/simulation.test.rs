@@ -26,12 +26,16 @@ const KNOWN_NAME: &str = "Levon's Phone";
 
 fn sim_config() -> AppConfig {
     AppConfig {
-        scan_interval_seconds: 1,
         enter_rssi_threshold_dbm: -70,
         enter_duration_seconds: 2,
         exit_timeout_seconds: 3,
         notifiers: Vec::new(),
         track_unknown: false,
+        general: Default::default(),
+        privacy: Default::default(),
+        scanner: Default::default(),
+        detection: Default::default(),
+        discovery: Default::default(),
     }
 }
 
@@ -73,10 +77,13 @@ fn simulation_zero_false_positives_realistic_home() {
 
     // ── Phase 1: Device arrives (strong signal, qualified) ──
     // Two qualified scans with 2.2s between them = enter_duration satisfied.
-    let mut all_events = simulate_scans(&engine, &[
-        (-55, 2200), // scan 1, wait > enter_duration
-        (-58, 100),  // scan 2, should trigger Enter
-    ]);
+    let mut all_events = simulate_scans(
+        &engine,
+        &[
+            (-55, 2200), // scan 1, wait > enter_duration
+            (-58, 100),  // scan 2, should trigger Enter
+        ],
+    );
 
     // Should have exactly one Enter event.
     assert_eq!(
@@ -93,13 +100,16 @@ fn simulation_zero_false_positives_realistic_home() {
 
     // ── Phase 2: Signal fluctuation (threshold crossings, no false exits) ──
     // RSSI bounces above and below threshold while device is still in the house.
-    let fluctuation_events = simulate_scans(&engine, &[
-        (-60, 500),  // strong
-        (-72, 500),  // below enter threshold, still in range
-        (-65, 500),  // above again
-        (-75, 500),  // below threshold, still in range
-        (-62, 500),  // above
-    ]);
+    let fluctuation_events = simulate_scans(
+        &engine,
+        &[
+            (-60, 500), // strong
+            (-72, 500), // below enter threshold, still in range
+            (-65, 500), // above again
+            (-75, 500), // below threshold, still in range
+            (-62, 500), // above
+        ],
+    );
 
     assert_eq!(
         fluctuation_events.len(),
@@ -111,9 +121,12 @@ fn simulation_zero_false_positives_realistic_home() {
     // ── Phase 3: Brief signal loss (device in basement, still present) ──
     // No scans for 2 seconds (less than exit_timeout of 3).
     thread::sleep(Duration::from_millis(2000));
-    let brief_loss_events = simulate_scans(&engine, &[
-        (-80, 0), // weak scan after brief absence, should not exit yet
-    ]);
+    let brief_loss_events = simulate_scans(
+        &engine,
+        &[
+            (-80, 0), // weak scan after brief absence, should not exit yet
+        ],
+    );
 
     // Check exits — no exit should trigger because last seen was 2s ago (< 3s).
     let exits_after_brief_loss = collect_exits(&engine);
@@ -151,19 +164,28 @@ fn simulation_zero_false_positives_realistic_home() {
     all_events.extend(exits_after_departure);
 
     // ── Final tally ──
-    let enter_count = all_events.iter().filter(|e| matches!(e, PresenceEvent::Entered { .. })).count();
-    let exit_count = all_events.iter().filter(|e| matches!(e, PresenceEvent::Exited { .. })).count();
+    let enter_count = all_events
+        .iter()
+        .filter(|e| matches!(e, PresenceEvent::Entered { .. }))
+        .count();
+    let exit_count = all_events
+        .iter()
+        .filter(|e| matches!(e, PresenceEvent::Exited { .. }))
+        .count();
 
     assert_eq!(
         enter_count, 1,
-        "Expected exactly 1 Enter event in full simulation, got {}", enter_count
+        "Expected exactly 1 Enter event in full simulation, got {}",
+        enter_count
     );
     assert_eq!(
         exit_count, 1,
-        "Expected exactly 1 Exit event in full simulation, got {}", exit_count
+        "Expected exactly 1 Exit event in full simulation, got {}",
+        exit_count
     );
     assert_eq!(
-        all_events.len(), 2,
+        all_events.len(),
+        2,
         "Expected exactly 2 total events (1 Enter + 1 Exit), got {}",
         all_events.len()
     );
@@ -175,10 +197,7 @@ fn simulation_device_at_exact_threshold_boundary() {
     let engine = DetectionEngine::new(sim_config(), sim_devices(), state_table);
 
     // RSSI exactly at threshold = -70. This should count as qualified.
-    let mut events = simulate_scans(&engine, &[
-        (-70, 2200),
-        (-70, 100),
-    ]);
+    let mut events = simulate_scans(&engine, &[(-70, 2200), (-70, 100)]);
 
     assert_eq!(events.len(), 1);
     assert!(matches!(&events[0], PresenceEvent::Entered { .. }));
@@ -198,30 +217,38 @@ fn simulation_rapid_flapping_around_threshold() {
     let engine = DetectionEngine::new(sim_config(), sim_devices(), state_table);
 
     // Device arrives
-    let mut events = simulate_scans(&engine, &[
-        (-55, 2200),
-        (-55, 100),
-    ]);
+    let mut events = simulate_scans(&engine, &[(-55, 2200), (-55, 100)]);
     assert_eq!(events.len(), 1);
 
     // Rapidly alternate above/below threshold — should not trigger any events
-    let flap_events = simulate_scans(&engine, &[
-        (-60, 100),
-        (-72, 100),
-        (-68, 100),
-        (-71, 100),
-        (-69, 100),
-        (-73, 100),
-        (-67, 100),
-        (-74, 100),
-        (-66, 100),
-        (-72, 100),
-    ]);
-    assert_eq!(flap_events.len(), 0, "Rapid flap should produce zero events");
+    let flap_events = simulate_scans(
+        &engine,
+        &[
+            (-60, 100),
+            (-72, 100),
+            (-68, 100),
+            (-71, 100),
+            (-69, 100),
+            (-73, 100),
+            (-67, 100),
+            (-74, 100),
+            (-66, 100),
+            (-72, 100),
+        ],
+    );
+    assert_eq!(
+        flap_events.len(),
+        0,
+        "Rapid flap should produce zero events"
+    );
 
     // No false exits either
     let exits = collect_exits(&engine);
-    assert_eq!(exits.len(), 0, "Rapid flap should not trigger premature exit");
+    assert_eq!(
+        exits.len(),
+        0,
+        "Rapid flap should not trigger premature exit"
+    );
 
     // Proper departure
     thread::sleep(Duration::from_millis(3200));
@@ -236,10 +263,7 @@ fn simulation_multiple_brief_dropouts_still_present() {
     let engine = DetectionEngine::new(sim_config(), sim_devices(), state_table);
 
     // Device arrives
-    let mut events = simulate_scans(&engine, &[
-        (-55, 2200),
-        (-55, 100),
-    ]);
+    let mut events = simulate_scans(&engine, &[(-55, 2200), (-55, 100)]);
     assert_eq!(events.len(), 1);
 
     // Multiple short dropouts (each 2s, less than exit_timeout 3s)
@@ -247,7 +271,10 @@ fn simulation_multiple_brief_dropouts_still_present() {
     for _ in 0..3 {
         thread::sleep(Duration::from_millis(2000));
         let ev = engine.evaluate_scan(KNOWN_MAC, -60);
-        assert!(ev.is_none(), "Should not trigger event during brief dropout");
+        assert!(
+            ev.is_none(),
+            "Should not trigger event during brief dropout"
+        );
         let exits = collect_exits(&engine);
         assert_eq!(exits.len(), 0, "Brief dropout should not cause exit");
     }
@@ -257,5 +284,9 @@ fn simulation_multiple_brief_dropouts_still_present() {
     let exits = collect_exits(&engine);
     events.extend(exits);
 
-    assert_eq!(events.len(), 2, "Expected 1 Enter + 1 Exit across multiple brief dropouts");
+    assert_eq!(
+        events.len(),
+        2,
+        "Expected 1 Enter + 1 Exit across multiple brief dropouts"
+    );
 }

@@ -4,8 +4,8 @@ use tokio::sync::mpsc;
 use tokio::time::interval;
 use tracing::{debug, info};
 
-use crate::bluetooth::types::ScannedDevice;
 use crate::notifier::NotifierRegistry;
+use crate::scanner::types::RawSignal;
 use crate::state::PresenceEvent;
 
 use super::engine::DetectionEngine;
@@ -14,20 +14,22 @@ use super::engine::DetectionEngine;
 ///
 /// # Arguments
 /// * `engine` — The [`DetectionEngine`] to evaluate scan results against.
-/// * `mut rx` — Receiver channel for [`ScannedDevice`] sightings from the scan loop.
+/// * `mut rx` — Receiver channel for [`RawSignal`] sightings from the scan loop.
 /// * `exit_check_interval` — How often to poll for exit conditions.
 /// * `notifiers` — Optional [`NotifierRegistry`] to dispatch presence events.
+/// * `mut shutdown` — Watch receiver for graceful shutdown signal.
 ///
 /// # Behavior
 /// * Each received scan result is fed into `engine.evaluate_scan()`.
 /// * Any emitted [`PresenceEvent`] is logged at `info` level and dispatched to notifiers.
 /// * Every `exit_check_interval`, `engine.check_exits()` is called and results are logged.
-/// * If the channel closes, the loop exits cleanly.
+/// * If the channel closes or shutdown is signalled, the loop exits cleanly.
 pub async fn run_detection_loop(
     engine: Arc<DetectionEngine>,
-    mut rx: mpsc::Receiver<ScannedDevice>,
+    mut rx: mpsc::Receiver<RawSignal>,
     exit_check_interval: Duration,
     notifiers: Option<Arc<NotifierRegistry>>,
+    mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) {
     info!(
         "Starting detection loop (exit check every {:?})",
@@ -38,12 +40,25 @@ pub async fn run_detection_loop(
 
     loop {
         tokio::select! {
+            // Graceful shutdown
+            _ = shutdown.changed() => {
+                info!("Detection loop received shutdown signal, exiting cleanly");
+                break;
+            }
+
             // Process incoming scan results
             result = rx.recv() => {
                 match result {
-                    Some(device) => {
-                        debug!(mac = %device.mac, rssi = device.rssi, "Evaluating scan result");
-                        match engine.evaluate_scan(&device.mac, device.rssi) {
+                    Some(signal) => {
+                        debug!(
+                            id = %signal.id_value,
+                            id_type = %signal.id_type,
+                            rssi = ?signal.rssi,
+                            scanner = %signal.scanner_name,
+                            "Evaluating scan result"
+                        );
+                        let rssi = signal.rssi.unwrap_or(i16::MIN);
+                        match engine.evaluate_scan(&signal.id_value, rssi) {
                             Some(ref ev @ PresenceEvent::Entered { ref name, ref mac }) => {
                                 info!(mac = %mac, name = %name, "PRESENCE: Device entered");
                                 dispatch_notifiers(notifiers.as_ref(), ev);
@@ -100,14 +115,19 @@ mod tests {
     use crate::state::PresenceStateTable;
     use std::time::Duration;
 
+    #[allow(deprecated)]
     fn test_config() -> AppConfig {
         AppConfig {
-            scan_interval_seconds: 30,
             enter_rssi_threshold_dbm: -70,
             enter_duration_seconds: 1,
             exit_timeout_seconds: 2,
             notifiers: Vec::new(),
             track_unknown: true,
+            general: Default::default(),
+            privacy: Default::default(),
+            scanner: Default::default(),
+            detection: Default::default(),
+            discovery: Default::default(),
         }
     }
 
@@ -134,17 +154,26 @@ mod tests {
 
         let (tx, rx) = mpsc::channel(16);
 
-        // Spawn detection loop
+        // Spawn detection loop with dummy shutdown channel
+        let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
         let handle = tokio::spawn(async move {
-            run_detection_loop(engine, rx, Duration::from_secs(1), None).await;
+            run_detection_loop(engine, rx, Duration::from_secs(1), None, shutdown_rx).await;
         });
 
         // Send a scan result, wait for debounce, send again
-        tx.send(ScannedDevice::new("AA:BB:CC:DD:EE:FF", -60))
+        tx.send(RawSignal::new(
+                crate::scanner::types::IdType::BleMac,
+                "AA:BB:CC:DD:EE:FF",
+                "ble",
+            ).with_rssi(-60))
             .await
             .unwrap();
         tokio::time::sleep(Duration::from_millis(1100)).await;
-        tx.send(ScannedDevice::new("AA:BB:CC:DD:EE:FF", -60))
+        tx.send(RawSignal::new(
+                crate::scanner::types::IdType::BleMac,
+                "AA:BB:CC:DD:EE:FF",
+                "ble",
+            ).with_rssi(-60))
             .await
             .unwrap();
 
@@ -167,8 +196,9 @@ mod tests {
 
         let (_tx, rx) = mpsc::channel(16);
 
+        let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
         let handle = tokio::spawn(async move {
-            run_detection_loop(engine, rx, Duration::from_secs(1), None).await;
+            run_detection_loop(engine, rx, Duration::from_secs(1), None, shutdown_rx).await;
         });
 
         // Close channel immediately
@@ -177,5 +207,34 @@ mod tests {
 
         // Should complete without panic
         handle.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn detection_loop_graceful_shutdown() {
+        let state_table = Arc::new(PresenceStateTable::new());
+        let engine = Arc::new(DetectionEngine::new(
+            test_config(),
+            test_devices(),
+            state_table,
+        ));
+
+        let (_tx, rx) = mpsc::channel(16);
+
+        let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+        let handle = tokio::spawn(async move {
+            run_detection_loop(engine, rx, Duration::from_secs(1), None, shutdown_rx).await;
+        });
+
+        // Give loop time to start
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        // Signal shutdown
+        shutdown_tx.send(true).expect("send shutdown");
+
+        // Should complete within timeout
+        tokio::time::timeout(Duration::from_secs(2), handle)
+            .await
+            .expect("detection loop did not shut down within timeout")
+            .unwrap();
     }
 }

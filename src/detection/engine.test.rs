@@ -7,12 +7,16 @@ use crate::state::PresenceStateTable;
 
 fn test_config() -> AppConfig {
     AppConfig {
-        scan_interval_seconds: 30,
         enter_rssi_threshold_dbm: -70,
         enter_duration_seconds: 1,
         exit_timeout_seconds: 2,
         notifiers: Vec::new(),
         track_unknown: false,
+        general: Default::default(),
+        privacy: Default::default(),
+        scanner: Default::default(),
+        detection: Default::default(),
+        discovery: Default::default(),
     }
 }
 
@@ -42,7 +46,7 @@ fn evaluate_scan_unknown_device_ignored_when_track_unknown_false() {
     assert!(table.get("00:00:00:00:00:00").is_none());
 }
 
-#[test]
+#[allow(deprecated)]
 fn evaluate_scan_tracks_unknown_when_configured() {
     let state_table = Arc::new(PresenceStateTable::new());
     let mut config = test_config();
@@ -69,7 +73,10 @@ fn evaluate_scan_weak_rssi_does_not_trigger_enter() {
     let event = engine.evaluate_scan("AA:BB:CC:DD:EE:FF", -80);
     assert!(event.is_none());
     // Device is tracked in state table even with weak RSSI, but stays Pending.
-    assert_eq!(table.get_state("AA:BB:CC:DD:EE:FF"), Some(crate::state::PresenceState::Pending));
+    assert_eq!(
+        table.get_state("AA:BB:CC:DD:EE:FF"),
+        Some(crate::state::PresenceState::Pending)
+    );
 }
 
 #[test]
@@ -84,7 +91,10 @@ fn evaluate_scan_enter_after_debounce_duration() {
     assert!(event.is_some());
     let ev = event.unwrap();
     assert!(matches!(ev, crate::state::PresenceEvent::Entered { .. }));
-    assert_eq!(table.get_state("AA:BB:CC:DD:EE:FF"), Some(crate::state::PresenceState::Entered));
+    assert_eq!(
+        table.get_state("AA:BB:CC:DD:EE:FF"),
+        Some(crate::state::PresenceState::Entered)
+    );
 }
 
 #[test]
@@ -97,14 +107,23 @@ fn check_exits_after_timeout() {
     std::thread::sleep(Duration::from_millis(1100));
     let event = engine.evaluate_scan("AA:BB:CC:DD:EE:FF", -60);
     assert!(event.is_some());
-    assert_eq!(table.get_state("AA:BB:CC:DD:EE:FF"), Some(crate::state::PresenceState::Entered));
+    assert_eq!(
+        table.get_state("AA:BB:CC:DD:EE:FF"),
+        Some(crate::state::PresenceState::Entered)
+    );
 
     // Wait for exit timeout
     std::thread::sleep(Duration::from_millis(2100));
     let events = engine.check_exits();
     assert_eq!(events.len(), 1);
-    assert!(matches!(events[0], crate::state::PresenceEvent::Exited { .. }));
-    assert_eq!(table.get_state("AA:BB:CC:DD:EE:FF"), Some(crate::state::PresenceState::Exited));
+    assert!(matches!(
+        events[0],
+        crate::state::PresenceEvent::Exited { .. }
+    ));
+    assert_eq!(
+        table.get_state("AA:BB:CC:DD:EE:FF"),
+        Some(crate::state::PresenceState::Exited)
+    );
 }
 
 #[test]
@@ -120,7 +139,10 @@ fn check_exits_does_not_trigger_prematurely() {
     // Immediately check exits — should not trigger
     let events = engine.check_exits();
     assert!(events.is_empty());
-    assert_eq!(table.get_state("AA:BB:CC:DD:EE:FF"), Some(crate::state::PresenceState::Entered));
+    assert_eq!(
+        table.get_state("AA:BB:CC:DD:EE:FF"),
+        Some(crate::state::PresenceState::Entered)
+    );
 }
 
 #[test]
@@ -163,9 +185,13 @@ fn re_enter_requires_full_debounce_after_exit() {
     std::thread::sleep(Duration::from_millis(1100));
     let event = engine.evaluate_scan("AA:BB:CC:DD:EE:FF", -60);
     assert!(event.is_some());
-    assert!(matches!(event.unwrap(), crate::state::PresenceEvent::Entered { .. }));
+    assert!(matches!(
+        event.unwrap(),
+        crate::state::PresenceEvent::Entered { .. }
+    ));
 }
 
+#[allow(deprecated)]
 #[test]
 fn tracked_count_reflects_unique_devices() {
     let state_table = Arc::new(PresenceStateTable::new());

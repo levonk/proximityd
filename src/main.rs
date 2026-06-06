@@ -1,35 +1,34 @@
 use btnotify::config;
 
-use clap::Parser;
 use anyhow::{Context, Result};
-use std::path::PathBuf;
-use std::io::{self, Read};
+use clap::Parser;
 use glob::glob;
-use tracing::{Level, debug, info, warn, error};
-use tracing_subscriber::{fmt, EnvFilter, prelude::*};
 use once_cell::sync::Lazy;
+use std::io::{self, Read};
+use std::path::PathBuf;
+use tracing::{debug, error, info, warn, Level};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 // Module name for logging
-const MODULE_NAME: &str = "btnotify";
+const MODULE_NAME: &str = "proximityd";
 
 // Color configuration
-static COLORS_ENABLED: Lazy<bool> = Lazy::new(|| {
-    atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err()
-});
+static COLORS_ENABLED: Lazy<bool> =
+    Lazy::new(|| atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err());
 
 #[derive(Parser)]
-#[command(name = "btnotify", version, about = "A CLI notification tool")]
+#[command(name = "proximityd", version, about = "A CLI notification tool")]
 struct Cli {
     /// Input files or glob patterns. Use "-" for stdin.
     #[arg(value_name = "INPUTS")]
     inputs: Vec<String>,
 
     /// Override config file
-    #[arg(long, env = "BTNOTIFY_CONFIG")]
+    #[arg(long, env = "PROXIMITYD_CONFIG")]
     config: Option<PathBuf>,
 
     /// Override devices mapping file
-    #[arg(long, env = "BTNOTIFY_DEVICES")]
+    #[arg(long, env = "PROXIMITYD_DEVICES")]
     devices: Option<PathBuf>,
 
     /// Output as JSON
@@ -66,16 +65,20 @@ struct Cli {
     health_check: bool,
 }
 
-#[cfg(target_os = "linux")]
-async fn run_daemon(app_config: config::AppConfig, devices_config: config::DevicesConfig) -> Result<()> {
+async fn run_daemon(
+    app_config: config::AppConfig,
+    devices_config: config::DevicesConfig,
+) -> Result<()> {
+    use btnotify::detection::{run_detection_loop, DetectionEngine};
+    use btnotify::notifier::NotifierRegistry;
+    use btnotify::scanner::ble::BleScanner;
+    use btnotify::scanner::scan_loop::spawn_scan_loop;
+    use btnotify::scanner::Scanner;
+    use btnotify::state::PresenceStateTable;
     use std::sync::Arc;
     use std::time::Duration;
-    use btnotify::bluetooth::{BlueZAdapter, spawn_scan_loop};
-    use btnotify::detection::{DetectionEngine, run_detection_loop};
-    use btnotify::notifier::NotifierRegistry;
-    use btnotify::state::PresenceStateTable;
 
-    info!("Starting btnotify daemon (BlueZ)");
+    info!("Starting proximityd daemon (btleplug)");
 
     let notifiers = NotifierRegistry::from_config(&app_config)
         .context("Failed to initialise notifiers from config")?;
@@ -87,7 +90,7 @@ async fn run_daemon(app_config: config::AppConfig, devices_config: config::Devic
         Some(Arc::new(notifiers))
     };
 
-    let adapter = Arc::new(BlueZAdapter::new().await?);
+    let scanner: Arc<dyn Scanner> = Arc::new(BleScanner::new());
     let state_table = Arc::new(PresenceStateTable::new());
     let engine = Arc::new(DetectionEngine::new(
         app_config.clone(),
@@ -95,9 +98,15 @@ async fn run_daemon(app_config: config::AppConfig, devices_config: config::Devic
         state_table,
     ));
 
-    let scan_interval = Duration::from_secs(app_config.scan_interval_seconds);
+    let scan_interval = Duration::from_secs(
+        app_config
+            .scanner
+            .get("ble")
+            .map(|s| s.scan_interval_sec)
+            .unwrap_or(30),
+    );
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let rx = spawn_scan_loop(adapter, scan_interval, shutdown_rx.clone());
+    let rx = spawn_scan_loop(scanner, scan_interval, shutdown_rx.clone());
 
     // Spawn signal handler to trigger graceful shutdown
     let shutdown_tx_signal = shutdown_tx.clone();
@@ -112,6 +121,7 @@ async fn run_daemon(app_config: config::AppConfig, devices_config: config::Devic
         shutdown_tx_signal.send(true).ok();
     });
 
+    #[allow(deprecated)]
     let exit_check_interval = Duration::from_secs(app_config.exit_timeout_seconds.max(5));
     run_detection_loop(engine, rx, exit_check_interval, notifiers, shutdown_rx).await;
 
@@ -119,20 +129,20 @@ async fn run_daemon(app_config: config::AppConfig, devices_config: config::Devic
     Ok(())
 }
 
-#[cfg(not(target_os = "linux"))]
-async fn run_daemon(_app_config: config::AppConfig, _devices_config: config::DevicesConfig) -> Result<()> {
-    anyhow::bail!("Daemon mode requires a BLE adapter; only Linux (BlueZ) is currently supported");
-}
 
 fn process_content(source: &str, content: &str) -> Result<()> {
-    info!("Processing content from {} ({} bytes)", source, content.len());
+    info!(
+        "Processing content from {} ({} bytes)",
+        source,
+        content.len()
+    );
     debug!("Content preview: {}", &content[..content.len().min(100)]);
     Ok(())
 }
 
 fn resolve_log_level(cli: &Cli, app_config: Option<&config::AppConfig>) -> String {
     // Precedence: env var > CLI flags > config file > default (INFO)
-    if let Ok(env_level) = std::env::var("BTNOTIFY_LOG_LEVEL") {
+    if let Ok(env_level) = std::env::var("PROXIMITYD_LOG_LEVEL") {
         return env_level;
     }
 
@@ -149,7 +159,7 @@ fn resolve_log_level(cli: &Cli, app_config: Option<&config::AppConfig>) -> Strin
     }
 
     if let Some(cfg) = app_config {
-        return cfg.log_level.clone();
+        return cfg.general.log_level.clone();
     }
 
     Level::INFO.to_string()
@@ -161,16 +171,16 @@ fn init_logging(cli: &Cli, app_config: Option<&config::AppConfig>) -> Result<()>
     }
 
     let level_str = resolve_log_level(cli, app_config);
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&level_str));
+    let env_filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&level_str));
 
     let is_terminal = atty::is(atty::Stream::Stderr);
-    let explicit_format = std::env::var("BTNOTIFY_LOG_FORMAT").ok();
+    let explicit_format = std::env::var("PROXIMITYD_LOG_FORMAT").ok();
     let use_json = match explicit_format.as_deref() {
         Some("json") => true,
         Some("pretty") => false,
         Some(other) => {
-            eprintln!("Warning: unknown BTNOTIFY_LOG_FORMAT='{other}', expected 'json' or 'pretty'. Falling back to auto-detection.");
+            eprintln!("Warning: unknown PROXIMITYD_LOG_FORMAT='{other}', expected 'json' or 'pretty'. Falling back to auto-detection.");
             !is_terminal
         }
         None => !is_terminal,
@@ -253,16 +263,27 @@ fn main() -> Result<()> {
     // Session correlation ID for structured logging
     let _session = {
         let correlation_id = format!("bt-{}", std::process::id());
-        tracing::info_span!("btnotify", correlation_id = %correlation_id).entered()
+        tracing::info_span!("proximityd", correlation_id = %correlation_id).entered()
     };
 
     info!("Starting {}", MODULE_NAME);
+    #[allow(deprecated)]
+    let rssi_threshold = app_config.enter_rssi_threshold_dbm;
+    #[allow(deprecated)]
+    let enter_duration = app_config.enter_duration_seconds;
+    #[allow(deprecated)]
+    let exit_timeout = app_config.exit_timeout_seconds;
+
     info!("Loaded config: scan_interval={}s, rssi_threshold={} dBm, enter_duration={}s, exit_timeout={}s, log_level={}",
-        app_config.scan_interval_seconds,
-        app_config.enter_rssi_threshold_dbm,
-        app_config.enter_duration_seconds,
-        app_config.exit_timeout_seconds,
-        app_config.log_level
+        app_config
+            .scanner
+            .get("ble")
+            .map(|s| s.scan_interval_sec)
+            .unwrap_or(30),
+        rssi_threshold,
+        enter_duration,
+        exit_timeout,
+        app_config.general.log_level
     );
 
     if devices_config.is_empty() {
@@ -323,7 +344,7 @@ fn main() -> Result<()> {
                         let content = std::fs::read_to_string(&path)
                             .with_context(|| format!("Failed to read file {path:?}"))?;
                         process_content(path.to_string_lossy().as_ref(), &content)?;
-                    },
+                    }
                     Err(e) => error!("Error matching glob: {e:?}"),
                 }
             }
