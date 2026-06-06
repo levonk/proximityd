@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/generic-presence-notify/prd-generic-presence-no
 phase: 2
 parallel_id: 1
 branch: "feature/current/generic-presence-notify/story-02-001-wifi-arp-scanner"
-status: "in_progress"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["01-003"]
