@@ -35,6 +35,12 @@ pub struct ScannerConfig {
     /// Scan interval in seconds.
     #[serde(default = "default_scan_interval")]
     pub scan_interval_sec: u64,
+    /// Router IP address for SNMP queries (WiFi ARP scanner only).
+    #[serde(default)]
+    pub router_ip: Option<String>,
+    /// SNMP community string (WiFi ARP scanner only).
+    #[serde(default = "default_snmp_community")]
+    pub snmp_community: String,
 }
 
 /// Detection engine settings.
@@ -171,6 +177,10 @@ fn default_scan_interval() -> u64 {
     30
 }
 
+fn default_snmp_community() -> String {
+    "public".to_string()
+}
+
 fn default_enter_debounce() -> u64 {
     30
 }
@@ -219,6 +229,8 @@ impl Default for ScannerConfig {
         Self {
             enabled: default_scanner_enabled(),
             scan_interval_sec: default_scan_interval(),
+            router_ip: None,
+            snmp_community: default_snmp_community(),
         }
     }
 }
@@ -282,6 +294,8 @@ scan_interval_sec = 10
 [scanner.wifi_arp]
 enabled = true
 scan_interval_sec = 30
+router_ip = "192.168.1.1"
+snmp_community = "public"
 
 [detection]
 enter_debounce_sec = 15

@@ -7,6 +7,7 @@
 pub mod ble;
 pub mod scan_loop;
 pub mod types;
+pub mod wifi_arp;
 
 use anyhow::Result;
 use types::RawSignal;
