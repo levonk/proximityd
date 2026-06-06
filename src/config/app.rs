@@ -41,6 +41,9 @@ pub struct ScannerConfig {
     /// SNMP community string (WiFi ARP scanner only).
     #[serde(default = "default_snmp_community")]
     pub snmp_community: String,
+    /// Subnet to scan for ping sweep (e.g., "192.168.1.0/24").
+    #[serde(default)]
+    pub subnet: Option<String>,
 }
 
 /// Detection engine settings.
@@ -231,6 +234,7 @@ impl Default for ScannerConfig {
             scan_interval_sec: default_scan_interval(),
             router_ip: None,
             snmp_community: default_snmp_community(),
+            subnet: None,
         }
     }
 }

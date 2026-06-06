@@ -14,6 +14,12 @@ pub enum IdType {
     /// Ping sweep response (IP address).
     #[serde(rename = "ping")]
     Ping,
+    /// IPv4 address from ping sweep or other network discovery.
+    #[serde(rename = "ip_v4")]
+    IpV4,
+    /// IPv6 address from network discovery.
+    #[serde(rename = "ip_v6")]
+    IpV6,
     /// mDNS broadcast identifier.
     #[serde(rename = "mdns")]
     Mdns,
@@ -28,6 +34,8 @@ impl std::fmt::Display for IdType {
             IdType::BleMac => write!(f, "ble_mac"),
             IdType::WifiArp => write!(f, "wifi_arp"),
             IdType::Ping => write!(f, "ping"),
+            IdType::IpV4 => write!(f, "ip_v4"),
+            IdType::IpV6 => write!(f, "ip_v6"),
             IdType::Mdns => write!(f, "mdns"),
             IdType::Generic => write!(f, "generic"),
         }
@@ -121,6 +129,8 @@ mod tests {
         assert_eq!(IdType::BleMac.to_string(), "ble_mac");
         assert_eq!(IdType::WifiArp.to_string(), "wifi_arp");
         assert_eq!(IdType::Ping.to_string(), "ping");
+        assert_eq!(IdType::IpV4.to_string(), "ip_v4");
+        assert_eq!(IdType::IpV6.to_string(), "ip_v6");
         assert_eq!(IdType::Mdns.to_string(), "mdns");
         assert_eq!(IdType::Generic.to_string(), "generic");
     }
