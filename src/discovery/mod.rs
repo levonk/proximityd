@@ -1,6 +1,7 @@
 /// Discovery engine for correlating identifiers and suggesting party/device groupings.
 pub mod correlator;
 pub mod report;
+pub mod runtime;
 pub mod tests;
 
 use rusqlite::Connection;

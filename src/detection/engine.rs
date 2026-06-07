@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::config::{AppConfig, DevicesConfig};
+use crate::discovery::runtime::SuggestionRuntime;
 use crate::signals::{RawSignal, SignalLogger};
 use crate::state::{PresenceEvent, PresenceState, PresenceStateTable};
 
@@ -17,6 +18,7 @@ pub struct DetectionEngine {
     state_table: Arc<PresenceStateTable>,
     timers: RwLock<HashMap<String, DebounceTimer>>,
     signal_logger: Option<Mutex<SignalLogger>>,
+    suggestion_runtime: Option<SuggestionRuntime>,
 }
 
 impl DetectionEngine {
@@ -32,6 +34,7 @@ impl DetectionEngine {
             state_table,
             timers: RwLock::new(HashMap::new()),
             signal_logger: None,
+            suggestion_runtime: None,
         }
     }
 
@@ -39,6 +42,41 @@ impl DetectionEngine {
     pub fn with_signal_logger(mut self, logger: SignalLogger) -> Self {
         self.signal_logger = Some(Mutex::new(logger));
         self
+    }
+
+    /// Attach a suggestion runtime for auto-discovery fallback.
+    pub fn with_suggestion_runtime(mut self, runtime: SuggestionRuntime) -> Self {
+        self.suggestion_runtime = Some(runtime);
+        self
+    }
+
+    /// Resolve a device name for a given MAC/identifier.
+    ///
+    /// First checks the normal devices config, then falls back to suggestions
+    /// if enabled and the identifier is found above the confidence threshold.
+    fn resolve_device_name(&self, identifier: &str) -> String {
+        // First try normal config lookup
+        if let Some(device) = self.devices.get(identifier) {
+            return device.name.clone();
+        }
+
+        // Fall back to suggestions if enabled
+        if let Some(ref runtime) = self.suggestion_runtime {
+            if let Some((party_name, device_name, confidence)) = runtime.resolve(identifier) {
+                warn!(
+                    identifier = %identifier,
+                    party = %party_name,
+                    device = ?device_name,
+                    confidence = %confidence,
+                    "Using suggestion-based mapping (auto-discovery)"
+                );
+                // Return device name if available, otherwise party name
+                return device_name.clone().unwrap_or_else(|| party_name.clone());
+            }
+        }
+
+        // Fallback to the identifier itself
+        identifier.to_string()
     }
 
     /// Evaluate a single scan result and return a presence event if a state
@@ -97,11 +135,7 @@ impl DetectionEngine {
                 if elapsed >= Duration::from_secs(self.config.enter_duration_seconds)
                     && current_state != Some(PresenceState::Entered)
                 {
-                    let name = self
-                        .devices
-                        .get(&mac)
-                        .map(|d| d.name.clone())
-                        .unwrap_or_else(|| mac.clone());
+                    let name = self.resolve_device_name(&mac);
 
                     drop(timers);
                     self.state_table.set_state(&mac, PresenceState::Entered);
@@ -139,11 +173,7 @@ impl DetectionEngine {
         };
 
         for mac in candidates {
-            let name = self
-                .devices
-                .get(&mac)
-                .map(|d| d.name.clone())
-                .unwrap_or_else(|| mac.clone());
+            let name = self.resolve_device_name(&mac);
 
             self.state_table.set_state(&mac, PresenceState::Exited);
 

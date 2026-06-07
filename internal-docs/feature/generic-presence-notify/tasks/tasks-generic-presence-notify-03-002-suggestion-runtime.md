@@ -27,11 +27,11 @@ Wire discovery suggestions into runtime. When `config.toml` `[discovery] use_sug
 
 ## Sub-Tasks
 
-- [ ] Add `[discovery]` section to `AppConfig`: `use_suggestions` (default false), `auto_promote_threshold` (default 0.95)
-- [ ] Create `src/discovery/runtime.rs` — `SuggestionRuntime` that loads `suggestions.toml` and resolves identifiers to parties at runtime
-- [ ] Integrate into `DetectionEngine`: check suggestion mappings when normal config lookup fails
-- [ ] Log warning whenever a suggestion-based mapping is used
-- [ ] Add `src/discovery/runtime_tests.rs` — unit tests for promote/demote logic
+- [x] Add `[discovery]` section to `AppConfig`: `use_suggestions` (default false), `auto_promote_threshold` (default 0.95)
+- [x] Create `src/discovery/runtime.rs` — `SuggestionRuntime` that loads `suggestions.toml` and resolves identifiers to parties at runtime
+- [x] Integrate into `DetectionEngine`: check suggestion mappings when normal config lookup fails
+- [x] Log warning whenever a suggestion-based mapping is used
+- [x] Add `src/discovery/runtime_tests.rs` — unit tests for promote/demote logic
 
 ## Relevant Files
 
@@ -42,9 +42,9 @@ Wire discovery suggestions into runtime. When `config.toml` `[discovery] use_sug
 
 ## Acceptance Criteria
 
-- [ ] When `use_suggestions = false`, suggestions are never used at runtime
-- [ ] When `use_suggestions = true`, suggestions above threshold are used with warning log
-- [ ] Unit tests pass: `cargo test discovery_runtime`
+- [x] When `use_suggestions = false`, suggestions are never used at runtime
+- [x] When `use_suggestions = true`, suggestions above threshold are used with warning log
+- [x] Unit tests pass: `cargo test discovery_runtime`
 
 ## Test Plan
 

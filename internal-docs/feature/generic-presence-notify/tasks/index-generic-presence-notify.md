@@ -36,8 +36,8 @@ Generated from PRD: `internal-docs/feature/generic-presence-notify/prd-generic-p
 ### Phase 03 — Intelligence
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------ | ------------ | ------------- | ------- |
-| 03-001 | Discovery Engine + discover CLI | [~] In-Progress | feature/current/generic-presence-notify/story-03-001-discovery-engine | 01-001, 01-004 | true | src/discovery/ |
-| 03-002 | Suggestion Runtime Toggle | [ ] Todo | feature/current/generic-presence-notify/story-03-002-suggestion-runtime | 03-001 | true | src/discovery/ |
+| 03-001 | Discovery Engine + discover CLI | [x] Done | feature/current/generic-presence-notify/story-03-001-discovery-engine | 01-001, 01-004 | true | src/discovery/ |
+| 03-002 | Suggestion Runtime Toggle | [~] In-Progress | feature/current/generic-presence-notify/story-03-002-suggestion-runtime | 03-001 | true | src/discovery/ |
 
 ### Phase 04 — Location
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |
