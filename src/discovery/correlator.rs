@@ -48,17 +48,15 @@ impl Correlator {
                 .with_timezone(&chrono::Utc);
 
             // Round timestamp to 5-minute window
-            let window_key = format!(
-                "{}",
-                timestamp
-                    .duration_round(window_duration)
-                    .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?
-                    .to_rfc3339()
-            );
+            let window_key = timestamp
+                .duration_round(window_duration)
+                .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?
+                .to_rfc3339()
+                .to_string();
 
             time_windows
                 .entry(window_key)
-                .or_insert_with(HashSet::new)
+                .or_default()
                 .insert(id_value);
         }
 

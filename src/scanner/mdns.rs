@@ -174,16 +174,16 @@ impl MdnsScanner {
                 match output {
                     Ok(_) => {
                         warn!("dns-sd scan completed (unexpected); treating as no results");
-                        return Ok(Vec::new());
+                        Ok(Vec::new())
                     }
                     Err(_) => {
                         // Expected failure due to timeout/signal
-                        return Ok(Vec::new());
+                        Ok(Vec::new())
                     }
                 }
             }
             _ => {
-                return Err(anyhow::anyhow!("dns-sd not found"));
+                Err(anyhow::anyhow!("dns-sd not found"))
             }
         }
     }

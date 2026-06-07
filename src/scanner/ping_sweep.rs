@@ -129,7 +129,7 @@ impl PingSweepScanner {
             }
 
             // Validate that it's a valid IPv4 address
-            if let Ok(_) = ip.parse::<Ipv4Addr>() {
+            if ip.parse::<Ipv4Addr>().is_ok() {
                 let signal = RawSignal::new(IdType::IpV4, ip, "ping_sweep");
                 signals.push(signal);
             }

@@ -140,7 +140,14 @@ impl DetectionEngine {
                     drop(timers);
                     self.state_table.set_state(&mac, PresenceState::Entered);
                     info!(mac = %mac, name = %name, "Device entered");
-                    return Some(PresenceEvent::Entered { name, mac });
+                    return Some(PresenceEvent::Entered {
+                        name,
+                        mac,
+                        party_name: None,
+                        source: None,
+                        id_type: None,
+                        location: None,
+                    });
                 }
             }
         }
@@ -185,7 +192,14 @@ impl DetectionEngine {
             }
 
             info!(mac = %mac, name = %name, "Device exited");
-            events.push(PresenceEvent::Exited { name, mac });
+            events.push(PresenceEvent::Exited {
+                name,
+                mac,
+                party_name: None,
+                source: None,
+                id_type: None,
+                location: None,
+            });
         }
 
         events

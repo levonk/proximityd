@@ -27,13 +27,13 @@ Expand notifiers beyond Discord to Slack webhook, generic HTTP webhook, and MQTT
 
 ## Sub-Tasks
 
-- [ ] Update `Notifier` trait to include rich payload fields (party, source, id_type, location)
-- [ ] Create `src/notifier/slack.rs` — `SlackNotifier` using `reqwest`
-- [ ] Create `src/notifier/webhook.rs` — `WebhookNotifier` with configurable URL, method, payload template
-- [ ] Add `rumqttc` to `Cargo.toml` (optional feature flag)
-- [ ] Create `src/notifier/mqtt.rs` — `MqttNotifier` publishing JSON presence events to topic
-- [ ] Update `src/notifier/registry.rs` — register new notifier types
-- [ ] Add `src/notifier/slack_tests.rs`, `webhook_tests.rs`, `mqtt_tests.rs`
+- [x] Update `Notifier` trait to include rich payload fields (party, source, id_type, location)
+- [x] Create `src/notifier/slack.rs` — `SlackNotifier` using `reqwest`
+- [x] Create `src/notifier/webhook.rs` — `WebhookNotifier` with configurable URL, method, payload template
+- [x] Add `rumqttc` to `Cargo.toml` (optional feature flag)
+- [x] Create `src/notifier/mqtt.rs` — `MqttNotifier` publishing JSON presence events to topic
+- [x] Update `src/notifier/registry.rs` — register new notifier types
+- [x] Add `src/notifier/slack_tests.rs`, `webhook_tests.rs`, `mqtt_tests.rs`
 
 ## Relevant Files
 
@@ -46,10 +46,10 @@ Expand notifiers beyond Discord to Slack webhook, generic HTTP webhook, and MQTT
 
 ## Acceptance Criteria
 
-- [ ] Slack notifier sends formatted message with party + location
-- [ ] Webhook notifier respects custom method, URL, and payload template
-- [ ] MQTT notifier publishes JSON to configured topic
-- [ ] All new notifiers have unit tests
+- [x] Slack notifier sends formatted message with party + location
+- [x] Webhook notifier respects custom method, URL, and payload template
+- [x] MQTT notifier publishes JSON to configured topic
+- [x] All new notifiers have unit tests
 
 ## Test Plan
 

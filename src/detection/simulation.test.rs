@@ -93,7 +93,7 @@ fn simulation_zero_false_positives_realistic_home() {
         all_events
     );
     assert!(
-        matches!(&all_events[0], PresenceEvent::Entered { mac, name } if mac == KNOWN_MAC && name == KNOWN_NAME),
+        matches!(&all_events[0], PresenceEvent::Entered { mac, name, .. } if mac == KNOWN_MAC && name == KNOWN_NAME),
         "First event should be Entered, got {:?}",
         all_events[0]
     );
@@ -155,7 +155,7 @@ fn simulation_zero_false_positives_realistic_home() {
         exits_after_departure
     );
     assert!(
-        matches!(&exits_after_departure[0], PresenceEvent::Exited { mac, name } if mac == KNOWN_MAC && name == KNOWN_NAME),
+        matches!(&exits_after_departure[0], PresenceEvent::Exited { mac, name, .. } if mac == KNOWN_MAC && name == KNOWN_NAME),
         "Exit event should match device, got {:?}",
         exits_after_departure[0]
     );

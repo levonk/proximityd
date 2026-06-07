@@ -59,11 +59,11 @@ pub async fn run_detection_loop(
                         );
                         let rssi = signal.rssi.unwrap_or(i16::MIN);
                         match engine.evaluate_scan(&signal.id_value, rssi) {
-                            Some(ref ev @ PresenceEvent::Entered { ref name, ref mac }) => {
+                            Some(ref ev @ PresenceEvent::Entered { ref name, ref mac, .. }) => {
                                 info!(mac = %mac, name = %name, "PRESENCE: Device entered");
                                 dispatch_notifiers(notifiers.as_ref(), ev);
                             }
-                            Some(ref ev @ PresenceEvent::Exited { ref name, ref mac }) => {
+                            Some(ref ev @ PresenceEvent::Exited { ref name, ref mac, .. }) => {
                                 info!(mac = %mac, name = %name, "PRESENCE: Device exited");
                                 dispatch_notifiers(notifiers.as_ref(), ev);
                             }
@@ -82,10 +82,10 @@ pub async fn run_detection_loop(
                 let events = engine.check_exits();
                 for ev in &events {
                     match ev {
-                        PresenceEvent::Entered { name, mac } => {
+                        PresenceEvent::Entered { name, mac, .. } => {
                             info!(mac = %mac, name = %name, "PRESENCE: Device entered (exit check)");
                         }
-                        PresenceEvent::Exited { name, mac } => {
+                        PresenceEvent::Exited { name, mac, .. } => {
                             info!(mac = %mac, name = %name, "PRESENCE: Device exited (exit check)");
                         }
                     }

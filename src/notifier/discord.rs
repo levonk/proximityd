@@ -63,15 +63,35 @@ impl DiscordNotifier {
     }
 
     fn build_content(&self, event: &PresenceEvent) -> String {
-        let (name, mac, action) = match event {
-            PresenceEvent::Entered { name, mac } => (name, mac, "entered"),
-            PresenceEvent::Exited { name, mac } => (name, mac, "exited"),
+        let (name, mac, action, party_name, source, id_type, location) = match event {
+            PresenceEvent::Entered { name, mac, party_name, source, id_type, location } => {
+                (name, mac, "entered", party_name, source, id_type, location)
+            }
+            PresenceEvent::Exited { name, mac, party_name, source, id_type, location } => {
+                (name, mac, "exited", party_name, source, id_type, location)
+            }
         };
 
         let mut parts = vec![format!("{} has {} the area", name, action)];
 
+        if let Some(party) = party_name {
+            parts.push(format!("Party: {}", party));
+        }
+
+        if let Some(src) = source {
+            parts.push(format!("Source: {}", src));
+        }
+
+        if let Some(id_t) = id_type {
+            parts.push(format!("ID Type: {}", id_t));
+        }
+
         if self.include_mac {
             parts.push(format!("MAC: {}", mac));
+        }
+
+        if let Some(loc) = location {
+            parts.push(format!("Location: {}", loc));
         }
 
         if self.include_timestamp {

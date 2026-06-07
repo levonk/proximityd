@@ -1,6 +1,3 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Instant;
-
 use crate::state::PresenceEvent;
 
 use super::DiscordNotifier;
@@ -11,6 +8,10 @@ fn build_content_entered() {
     let event = PresenceEvent::Entered {
         name: "Phone".to_string(),
         mac: "AA:BB:CC:DD:EE:FF".to_string(),
+        party_name: None,
+        source: None,
+        id_type: None,
+        location: None,
     };
     assert_eq!(notifier.build_content(&event), "Phone has entered the area");
 }
@@ -21,6 +22,10 @@ fn build_content_exited() {
     let event = PresenceEvent::Exited {
         name: "Watch".to_string(),
         mac: "11:22:33:44:55:66".to_string(),
+        party_name: None,
+        source: None,
+        id_type: None,
+        location: None,
     };
     assert_eq!(notifier.build_content(&event), "Watch has exited the area");
 }
@@ -31,6 +36,10 @@ fn build_content_with_mac() {
     let event = PresenceEvent::Entered {
         name: "Phone".to_string(),
         mac: "AA:BB:CC:DD:EE:FF".to_string(),
+        party_name: None,
+        source: None,
+        id_type: None,
+        location: None,
     };
     let content = notifier.build_content(&event);
     assert!(content.contains("Phone has entered the area"));
@@ -43,6 +52,10 @@ fn build_content_with_timestamp() {
     let event = PresenceEvent::Exited {
         name: "Watch".to_string(),
         mac: "11:22:33:44:55:66".to_string(),
+        party_name: None,
+        source: None,
+        id_type: None,
+        location: None,
     };
     let content = notifier.build_content(&event);
     assert!(content.contains("Watch has exited the area"));
