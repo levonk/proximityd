@@ -1,0 +1,50 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "cargo": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#cargo",
+      "source": "nixpkg"
+    },
+    "cargo-audit": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#cargo-audit",
+      "source": "nixpkg"
+    },
+    "cargo-tarpaulin": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#cargo-tarpaulin",
+      "source": "nixpkg"
+    },
+    "cargo-watch": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#cargo-watch",
+      "source": "nixpkg"
+    },
+    "clippy": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#clippy",
+      "source": "nixpkg"
+    },
+    "github:NixOS/nixpkgs/nixpkgs-unstable": {
+      "last_modified": "2026-05-25T07:42:19Z",
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b?lastModified=1779694939"
+    },
+    "just": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#just",
+      "source": "nixpkg"
+    },
+    "pkg-config": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#pkg-config",
+      "source": "nixpkg"
+    },
+    "rust-analyzer": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#rust-analyzer",
+      "source": "nixpkg"
+    },
+    "rustc": {
+      "plugin_version": "0.0.1",
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#rustc",
+      "source": "nixpkg"
+    },
+    "rustfmt": {
+      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#rustfmt",
+      "source": "nixpkg"
+    }
+  }
+}

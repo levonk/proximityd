@@ -1,7 +1,7 @@
 use btnotify::config;
 
 use anyhow::{Context, Result};
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use glob::glob;
 use once_cell::sync::Lazy;
 use std::io::{self, Read};
@@ -63,6 +63,28 @@ struct Cli {
     /// For use with Docker HEALTHCHECK.
     #[arg(long)]
     health_check: bool,
+
+    /// Discover identifier correlations from signal log
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Discover identifier correlations from signal log
+    Discover {
+        /// Number of hours to look back from now (default: 24)
+        #[arg(long, default_value = "24")]
+        hours: u32,
+
+        /// Minimum confidence score (0.0 to 1.0, default: 0.5)
+        #[arg(long, default_value = "0.5")]
+        min_confidence: f64,
+
+        /// Output file path (default: stdout)
+        #[arg(long)]
+        output: Option<PathBuf>,
+    },
 }
 
 async fn run_daemon(
@@ -223,6 +245,39 @@ fn init_logging(cli: &Cli, app_config: Option<&config::AppConfig>) -> Result<()>
     Ok(())
 }
 
+fn run_discover(hours: u32, min_confidence: f64, output: Option<PathBuf>) -> Result<()> {
+    use btnotify::discovery::DiscoveryEngine;
+    use btnotify::signals::db_path;
+
+    info!("Running discovery: hours={}, min_confidence={}", hours, min_confidence);
+
+    let db_path = db_path::default_db_path();
+    info!("Using signal log at: {}", db_path.display());
+
+    let engine = DiscoveryEngine::open(&db_path).context("Failed to open signal log")?;
+    let suggestions = engine
+        .discover(hours, min_confidence)
+        .context("Failed to compute correlations")?;
+
+    info!("Found {} suggestion(s)", suggestions.len());
+
+    let toml_output = toml::to_string_pretty(&suggestions)
+        .context("Failed to serialize suggestions to TOML")?;
+
+    match output {
+        Some(path) => {
+            std::fs::write(&path, toml_output)
+                .with_context(|| format!("Failed to write suggestions to {}", path.display()))?;
+            info!("Suggestions written to {}", path.display());
+        }
+        None => {
+            println!("{}", toml_output);
+        }
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     // Parse CLI args first
     let cli = Cli::parse();
@@ -244,6 +299,26 @@ fn main() -> Result<()> {
             Err(msg) => {
                 eprintln!("unhealthy: {}", msg);
                 std::process::exit(1);
+            }
+        }
+    }
+
+    // Handle subcommands
+    if let Some(ref command) = cli.command {
+        match command {
+            Commands::Discover {
+                hours,
+                min_confidence,
+                output,
+            } => {
+                // Initialize logging with defaults for discover command
+                init_logging(&cli, None)?;
+
+                if let Err(e) = run_discover(*hours, *min_confidence, output.clone()) {
+                    error!("Discovery error: {e}");
+                    std::process::exit(1);
+                }
+                return Ok(());
             }
         }
     }

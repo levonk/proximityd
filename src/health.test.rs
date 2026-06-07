@@ -24,10 +24,10 @@ fn test_health_check_after_scan() {
 #[test]
 fn test_heartbeat_file_roundtrip() {
     use std::env;
-    let path = std::path::PathBuf::from("/tmp/btnotify_test.health");
-    env::set_var("BTNOTIFY_HEALTH_FILE", &path);
+    let path = std::path::PathBuf::from("/tmp/proximityd_test.health");
+    env::set_var("PROXIMITYD_HEALTH_FILE", &path);
     write_heartbeat();
     assert!(check_heartbeat_file().is_ok());
     let _ = std::fs::remove_file(&path);
-    env::remove_var("BTNOTIFY_HEALTH_FILE");
+    env::remove_var("PROXIMITYD_HEALTH_FILE");
 }

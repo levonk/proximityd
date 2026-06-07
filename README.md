@@ -1,4 +1,4 @@
-# btnotify — Bluetooth Presence Notifier
+# proximityd — Generic Presence Detection Service
 
 A containerized Bluetooth Low Energy (BLE) presence detection service that discovers nearby Bluetooth devices, maps them to labeled identities, and sends configurable enter/exit notifications via Discord (and other pluggable channels).
 
@@ -18,22 +18,22 @@ Get your first notification in under 10 minutes:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/levonk/btnotify.git
-cd btnotify
+git clone https://github.com/levonk/proximityd.git
+cd proximityd
 
 # 2. Copy example configs
-cp config.example.toml ~/.config/btnotify/config.toml
-cp devices.example.toml ~/.config/btnotify/devices.toml
+cp config.example.toml ~/.config/proximityd/config.toml
+cp devices.example.toml ~/.config/proximityd/devices.toml
 
 # 3. Edit device mapping
-# ~/.config/btnotify/devices.toml
+# ~/.config/proximityd/devices.toml
 [devices."AA:BB:CC:DD:EE:FF"]
 mac = "AA:BB:CC:DD:EE:FF"
 name = "Your Phone"
 
 # 4. Set your Discord webhook URL
-export BTNOTIFY_DISCORD_WEBHOOK="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
-# Or edit the webhook URL directly in ~/.config/btnotify/config.toml
+export PROXIMITYD_DISCORD_WEBHOOK="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+# Or edit the webhook URL directly in ~/.config/proximityd/config.toml
 
 # 5. Run the daemon (Linux with BlueZ required)
 cargo run -- --daemon
@@ -54,7 +54,7 @@ docker compose up --build
 
 ### `config.toml`
 
-Place at `~/.config/btnotify/config.toml` (Linux/macOS) or set `BTNOTIFY_CONFIG_DIR`.
+Place at `~/.config/proximityd/config.toml` (Linux/macOS) or set `PROXIMITYD_CONFIG_DIR`.
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -86,25 +86,25 @@ name = "Alice's Phone"
 
 | Variable | Description |
 |----------|-------------|
-| `BTNOTIFY_CONFIG_DIR` | Directory containing `config.toml` and `devices.toml` |
-| `BTNOTIFY_DISCORD_WEBHOOK` | Discord webhook URL (overrides config file) |
-| `BTNOTIFY_LOG_LEVEL` | Override log level (`DEBUG`, `TRACE`, etc.) |
+| `PROXIMITYD_CONFIG_DIR` | Directory containing `config.toml` and `devices.toml` |
+| `PROXIMITYD_DISCORD_WEBHOOK` | Discord webhook URL (overrides config file) |
+| `PROXIMITYD_LOG_LEVEL` | Override log level (`DEBUG`, `TRACE`, etc.) |
 | `NO_COLOR` | Disable colored output |
 
 ## CLI Usage
 
 ```bash
 # Run daemon mode (Linux only)
-btnotify --daemon
+proximityd --daemon
 
 # Run with verbose logging
-btnotify --daemon -vv
+proximityd --daemon -vv
 
 # Run health check (returns 0 if healthy)
-btnotify --health-check
+proximityd --health-check
 
 # Override config path
-btnotify --daemon --config /path/to/config.toml --devices /path/to/devices.toml
+proximityd --daemon --config /path/to/config.toml --devices /path/to/devices.toml
 ```
 
 ## Docker
@@ -112,22 +112,22 @@ btnotify --daemon --config /path/to/config.toml --devices /path/to/devices.toml
 ### Build
 
 ```bash
-docker build -t btnotify:latest .
+docker build -t proximityd:latest .
 ```
 
 ### Run
 
 ```bash
 docker run -d \
-  --name btnotify \
+  --name proximityd \
   --network host \
   --cap-drop ALL \
   --cap-add NET_ADMIN \
   --cap-add NET_RAW \
   -v /var/run/dbus:/var/run/dbus:ro \
-  -v ~/.config/btnotify:/home/btnotify/.config/btnotify:ro \
-  -e BTNOTIFY_LOG_LEVEL=info \
-  btnotify:latest
+  -v ~/.config/proximityd:/home/proximityd/.config/proximityd:ro \
+  -e PROXIMITYD_LOG_LEVEL=info \
+  proximityd:latest
 ```
 
 ### Compose
@@ -145,14 +145,14 @@ See `docker-compose.yml` for a complete example with security options pre-config
 ### Discord not delivering messages
 
 - Verify your webhook URL is valid and the channel allows incoming webhooks.
-- Check logs with `BTNOTIFY_LOG_LEVEL=debug` for HTTP error responses.
+- Check logs with `PROXIMITYD_LOG_LEVEL=debug` for HTTP error responses.
 - Ensure the webhook URL is not expired (Discord webhooks can be revoked).
 
 ### Permission denied
 
 - The daemon requires access to the D-Bus system bus for BlueZ.
 - Ensure your user has permission to access Bluetooth: `sudo usermod -a -G bluetooth $USER`
-- On Docker, the container drops to a non-root user (`btnotify`) automatically.
+- On Docker, the container drops to a non-root user (`proximityd`) automatically.
 
 ## Success Metrics
 

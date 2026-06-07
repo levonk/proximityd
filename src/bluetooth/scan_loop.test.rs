@@ -39,14 +39,18 @@ async fn test_scan_loop_receives_devices() {
 
     let adapter: Arc<dyn BluetoothAdapter> = Arc::new(MockAdapter::new(devices));
     let interval = Duration::from_millis(100);
-    let mut rx = spawn_scan_loop(adapter, interval);
+    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let mut rx = spawn_scan_loop(adapter, interval, shutdown_rx);
 
     // Give the scan loop time to complete one cycle and send
     sleep(Duration::from_millis(200)).await;
 
     // We should receive at least one device from the first scan cycle
     let result = timeout(Duration::from_secs(2), rx.recv()).await;
-    assert!(result.is_ok(), "Expected to receive a device within timeout");
+    assert!(
+        result.is_ok(),
+        "Expected to receive a device within timeout"
+    );
     let device = result.unwrap().expect("Channel closed unexpectedly");
     assert_eq!(device.mac, "AA:BB:CC:DD:EE:01");
     assert_eq!(device.rssi, -42);
@@ -56,8 +60,30 @@ async fn test_scan_loop_receives_devices() {
 async fn test_scan_loop_cycle_timing() {
     let adapter: Arc<dyn BluetoothAdapter> = Arc::new(MockAdapter::new(vec![]));
     let interval = Duration::from_millis(50);
-    let _rx = spawn_scan_loop(adapter, interval);
+    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let _rx = spawn_scan_loop(adapter, interval, shutdown_rx);
 
     // Just verify it spawns without panicking and cycles
     sleep(Duration::from_millis(150)).await;
+}
+
+#[tokio::test]
+async fn test_scan_loop_graceful_shutdown() {
+    let adapter: Arc<dyn BluetoothAdapter> = Arc::new(MockAdapter::new(vec![]));
+    let interval = Duration::from_millis(100);
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let mut rx = spawn_scan_loop(adapter, interval, shutdown_rx);
+
+    // Let the scan loop start one cycle
+    sleep(Duration::from_millis(50)).await;
+
+    // Signal shutdown
+    shutdown_tx.send(true).expect("send shutdown");
+
+    // Wait for loop to exit (channel will close when loop ends)
+    let timeout_result = timeout(Duration::from_secs(2), rx.recv()).await;
+    assert!(
+        timeout_result.is_ok(),
+        "Scan loop did not shut down within timeout"
+    );
 }

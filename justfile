@@ -1,4 +1,4 @@
-# btnotify - Rust CLI Development Commands
+# proximityd - Rust CLI Development Commands
 # Standard justfile following ADR-20260131001
 
 # Default recipe
@@ -35,7 +35,7 @@ bootstrap-internal:
     #!/usr/bin/env bash
     set -euo pipefail
     # Install dependencies and initialize memory management
-    echo "🦀 Rust CLI bootstrap complete for btnotify!"
+    echo "🦀 Rust CLI bootstrap complete for proximityd!"
 
     # Initialize tkr for task management
     if command -v tkr >/dev/null 2>&1; then
@@ -88,7 +88,7 @@ doctor-internal:
     #!/usr/bin/env bash
     set -euo pipefail
     # Check Rust CLI environment
-    echo "🔍 Checking btnotify development environment..."
+    echo "🔍 Checking proximityd development environment..."
     if ! cargo --version >/dev/null 2>&1; then
         echo "❌ Error: cargo not found" >&2
         echo "💡 Suggestion: Ensure Rust toolchain is installed" >&2
@@ -125,7 +125,7 @@ doctor-internal:
         echo "⚠️  WARNING: memory/ directory missing (run 'just bootstrap' to create)"
     fi
 
-    echo "🚀 Ready to develop btnotify!"
+    echo "🚀 Ready to develop proximityd!"
 
 # Quality checks (OPTIONAL but RECOMMENDED)
 quality:
@@ -220,12 +220,12 @@ build-internal:
 
 release-internal:
     # Full release pipeline: quality checks + build
-    echo "🚀 Starting release pipeline for btnotify..."
+    echo "🚀 Starting release pipeline for proximityd..."
     just lint-internal
     just test-internal
     just typecheck-internal
     just build-release-internal
-    echo "✅ Release complete! Binary available at target/release/btnotify"
+    echo "✅ Release complete! Binary available at target/release/proximityd"
 
 build-release-internal:
     # Build the project in release mode
@@ -282,7 +282,7 @@ audit-internal:
 
 # Docker recipes
 docker-build:
-    @echo "Building btnotify Docker image..."
+    @echo "Building proximityd Docker image..."
     @devbox run docker-build
 
 docker-build-internal:
@@ -291,7 +291,7 @@ docker-build-internal:
     ./run.sh build
 
 docker-run:
-    @echo "Running btnotify container..."
+    @echo "Running proximityd container..."
     @devbox run docker-run
 
 docker-run-internal:
@@ -300,7 +300,7 @@ docker-run-internal:
     ./run.sh compose-up
 
 docker-stop:
-    @echo "Stopping btnotify container..."
+    @echo "Stopping proximityd container..."
     @devbox run docker-stop
 
 docker-stop-internal:
@@ -310,7 +310,7 @@ docker-stop-internal:
 
 # Help target
 help:
-    echo "🦀 btnotify - Rust CLI Application"
+    echo "🦀 proximityd - Rust CLI Application"
     echo ""
     echo "Standard commands:"
     echo "  just bootstrap    - Initialize the development environment"

@@ -1,11 +1,10 @@
-# Agent Guidelines: btnotify
+# Agent Guidelines: proximityd
 
 ## Project Overview
 
-**btnotify** is a Rust CLI application for Bluetooth Low Energy (BLE) presence detection. It scans for nearby Bluetooth devices, maps MAC addresses to human-readable labels via TOML config, and sends enter/exit notifications via pluggable notifiers (Discord is the primary implementation).
+**proximityd** is a Rust CLI application for generic presence detection. It scans for nearby Bluetooth devices, maps MAC addresses to human-readable labels via TOML config, and sends enter/exit notifications via pluggable notifiers (Discord is the primary implementation).
 
-- **Repository**: https://github.com/levonk/btnotify
-- **License**: MIT OR Apache-2.0
+- **Repository**: https://github.com/levonk/proximityd
 - **Language**: Rust 2021 Edition
 - **Runtime**: Tokio async (daemon mode)
 - **Platform constraint**: Daemon mode requires **Linux + BlueZ**. Builds on macOS but daemon is gated behind `#[cfg(target_os = "linux")]`.
@@ -79,7 +78,7 @@ src/
   config/           # TOML config loading
     app.rs          # AppConfig struct (scan intervals, thresholds, notifiers)
     devices.rs      # DevicesConfig (MAC → name mapping)
-    loader.rs       # File resolution (~/.config/btnotify/ or env override)
+    loader.rs       # File resolution (~/.config/proximityd/ or env override)
   detection/        # Presence detection logic
     engine.rs       # Core detection engine
     bridge.rs       # Bridges scan events → detection state
@@ -117,16 +116,16 @@ tests/
 
 ### 4. Config files are runtime-required
 - Daemon mode loads `config.toml` and `devices.toml` at startup.
-- Default config dir: `~/.config/btnotify/` (or `BTNOTIFY_CONFIG_DIR` override).
+- Default config dir: `~/.config/proximityd/` (or `PROXIMITYD_CONFIG_DIR` override).
 - Example configs are in repo root: `config.example.toml`, `devices.example.toml`.
 
 ### 5. Logging is config-aware but CLI/env takes precedence
-- Log level resolution order: `BTNOTIFY_LOG_LEVEL` env → CLI `-q`/`-v` flags → `config.toml` → default `INFO`.
-- `BTNOTIFY_LOG_FORMAT` accepts `json` or `pretty`; auto-detects based on TTY if unset.
+- Log level resolution order: `PROXIMITYD_LOG_LEVEL` env → CLI `-q`/`-v` flags → `config.toml` → default `INFO`.
+- `PROXIMITYD_LOG_FORMAT` accepts `json` or `pretty`; auto-detects based on TTY if unset.
 
 ### 6. Docker requires host network + D-Bus
 - The container needs `--network host` and `/var/run/dbus` mounted for BlueZ access.
-- The Dockerfile drops to non-root user `btnotify` (UID/GID 1000).
+- The Dockerfile drops to non-root user `proximityd` (UID/GID 1000).
 
 ### 7. Test structure
 - Unit tests are co-located with source (`*.test.rs` files, e.g. `scan_loop.test.rs`).
@@ -153,12 +152,12 @@ tests/
 
 | Variable | Purpose |
 |----------|---------|
-| `BTNOTIFY_CONFIG_DIR` | Directory for `config.toml` and `devices.toml` |
-| `BTNOTIFY_CONFIG` | Override config file path (CLI `--config`) |
-| `BTNOTIFY_DEVICES` | Override devices file path (CLI `--devices`) |
-| `BTNOTIFY_DISCORD_WEBHOOK` | Discord webhook URL override |
-| `BTNOTIFY_LOG_LEVEL` | Override log level |
-| `BTNOTIFY_LOG_FORMAT` | `json` or `pretty` |
+| `PROXIMITYD_CONFIG_DIR` | Directory for `config.toml` and `devices.toml` |
+| `PROXIMITYD_CONFIG` | Override config file path (CLI `--config`) |
+| `PROXIMITYD_DEVICES` | Override devices file path (CLI `--devices`) |
+| `PROXIMITYD_DISCORD_WEBHOOK` | Discord webhook URL override |
+| `PROXIMITYD_LOG_LEVEL` | Override log level |
+| `PROXIMITYD_LOG_FORMAT` | `json` or `pretty` |
 | `NO_COLOR` | Disable ANSI colors |
 | `RUST_LOG` | Standard tracing env filter |
 | `RUST_BACKTRACE` | Backtrace setting (devbox default: `1`) |
@@ -181,7 +180,7 @@ tests/
 
 Dockerfile stages:
 - **Builder**: `rust:1-slim` + `libbluetooth-dev` + `libdbus-1-dev`
-- **Runtime**: `debian:bookworm-slim` + `libbluetooth3` + `dbus`, runs as `btnotify` user
+- **Runtime**: `debian:bookworm-slim` + `libbluetooth3` + `dbus`, runs as `proximityd` user
 
 ---
 

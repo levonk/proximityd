@@ -7,7 +7,7 @@ prd_file: "docs/requirements/20260527-initial-reqs/prd-bluetooth-presence-notifi
 phase: 4
 parallel_id: 1
 branch: "feature/current/bluetooth-presence-notifier/story-04-001-observability-error-handling-and-retry-logic"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["03-001"]
@@ -18,7 +18,7 @@ risk_level: "low"
 tags: ["feat", "backend", "observability", "reliability"]
 due: "2026-06-24"
 created_at: "2026-05-27"
-updated_at: "2026-05-27"
+updated_at: "2026-06-01"
 ---
 
 ## Summary
@@ -27,16 +27,16 @@ Harden the daemon for production: add structured JSON logging, retry logic with 
 
 ## Sub-Tasks
 
-- [ ] Refactor `src/main.rs` logging to default to JSON format in container; pretty ANSI in terminal (already partially done, align with PRD)
-- [ ] Add `BTNOTIFY_LOG_LEVEL` env var override with clear precedence: env > config > default (`INFO`)
-- [ ] Implement retry logic in `src/notifier/discord.rs`: 3 attempts with exponential backoff (1s, 2s, 4s)
-- [ ] Implement adapter recovery in `src/bluetooth/scan_loop.rs`: if scan fails, retry every 30 seconds; log error each time
-- [ ] Add `src/health.rs` — `HealthCheck` struct with `is_healthy()` based on last successful scan time and last notification delivery
-- [ ] Add `--health-check` CLI flag for Docker `HEALTHCHECK`
-- [ ] Add graceful shutdown on `SIGTERM`/`SIGINT` (improve existing `ctrlc` handler to finish current scan cycle before exit)
-- [ ] Add memory usage guard: warn if RSS exceeds 64 MB (NFR-1)
-- [ ] Add unit tests for retry backoff timing
-- [ ] Add integration test for graceful shutdown
+- [x] Refactor `src/main.rs` logging to default to JSON format in container; pretty ANSI in terminal (already partially done, align with PRD)
+- [x] Add `BTNOTIFY_LOG_LEVEL` env var override with clear precedence: env > config > default (`INFO`)
+- [x] Implement retry logic in `src/notifier/discord.rs`: 3 attempts with exponential backoff (1s, 2s, 4s)
+- [x] Implement adapter recovery in `src/bluetooth/scan_loop.rs`: if scan fails, retry every 30 seconds; log error each time
+- [x] Add `src/health.rs` — `HealthCheck` struct with `is_healthy()` based on last successful scan time and last notification delivery
+- [x] Add `--health-check` CLI flag for Docker `HEALTHCHECK`
+- [x] Add graceful shutdown on `SIGTERM`/`SIGINT` (improve existing `ctrlc` handler to finish current scan cycle before exit)
+- [x] Add memory usage guard: warn if RSS exceeds 64 MB (NFR-1)
+- [x] Add unit tests for retry backoff timing
+- [x] Add integration test for graceful shutdown
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 

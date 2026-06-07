@@ -1,0 +1,41 @@
+services:
+  proximityd:
+    build: .
+    image: proximityd:latest
+    container_name: proximityd
+    restart: unless-stopped
+
+    # Host network mode is required for Bluetooth discovery
+    network_mode: host
+
+    volumes:
+      # D-Bus socket for BlueZ communication
+      - /var/run/dbus:/var/run/dbus:ro
+      # Config persistence
+      - ${PROXIMITYD_CONFIG_DIR:-~/.config/proximityd}:/home/proximityd/.config/proximityd:ro
+
+    environment:
+      - PROXIMITYD_CONFIG_DIR=/home/proximityd/.config/proximityd
+      - PROXIMITYD_LOG_LEVEL=info
+      - RUST_LOG=info
+
+    # Drop all capabilities and add only what Bluetooth requires.
+    # --cap-add=NET_ADMIN is typically needed for Bluetooth adapter access.
+    # Some hosts may also require --cap-add=SYS_ADMIN depending on kernel/BlueZ version.
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    # Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Health check is defined in Dockerfile; this mirrors it for compose visibility
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "proximityd"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

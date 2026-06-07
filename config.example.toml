@@ -1,8 +1,8 @@
-# btnotify application configuration
+# proximityd application configuration
 # Place this file at:
-#   - $BTNOTIFY_CONFIG_DIR/config.toml  (if env var is set)
-#   - $XDG_CONFIG_HOME/com.myorg.btnotify/config.toml  (default on Linux/macOS)
-#   - %APPDATA%\com\myorg\btnotify\config\config.toml  (default on Windows)
+#   - $PROXIMITYD_CONFIG_DIR/config.toml  (if env var is set)
+#   - $XDG_CONFIG_HOME/com.myorg.proximityd/config.toml  (default on Linux/macOS)
+#   - %APPDATA%\com\myorg\proximityd\config\config.toml  (default on Windows)
 
 # All fields are optional; sensible defaults are shown below.
 

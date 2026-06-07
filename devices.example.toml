@@ -1,8 +1,8 @@
-# btnotify device identity mapping
+# proximityd device identity mapping
 # Place this file at:
-#   - $BTNOTIFY_CONFIG_DIR/devices.toml  (if env var is set)
-#   - $XDG_CONFIG_HOME/com.myorg.btnotify/devices.toml  (default on Linux/macOS)
-#   - %APPDATA%\com\myorg\btnotify\config\devices.toml  (default on Windows)
+#   - $PROXIMITYD_CONFIG_DIR/devices.toml  (if env var is set)
+#   - $XDG_CONFIG_HOME/com.myorg.proximityd/devices.toml  (default on Linux/macOS)
+#   - %APPDATA%\com\myorg\proximityd\config\devices.toml  (default on Windows)
 
 # Maps Bluetooth MAC addresses to human-readable display names.
 # The key under [devices] is the MAC address used for lookups.

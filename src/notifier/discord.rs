@@ -36,10 +36,7 @@ impl DiscordNotifier {
     }
 
     /// Create a notifier that posts to a channel using a bot token.
-    pub fn from_bot_token(
-        token: impl Into<String>,
-        channel_id: impl Into<String>,
-    ) -> Self {
+    pub fn from_bot_token(token: impl Into<String>, channel_id: impl Into<String>) -> Self {
         Self {
             client: Client::builder()
                 .timeout(Duration::from_secs(10))
@@ -87,7 +84,7 @@ impl DiscordNotifier {
         parts.join("\n")
     }
 
-    fn send_with_retry<F>(&self, operation: F) -> Result<()>
+    pub(crate) fn send_with_retry<F>(&self, operation: F) -> Result<()>
     where
         F: Fn() -> reqwest::Result<reqwest::blocking::Response>,
     {
@@ -113,10 +110,7 @@ impl DiscordNotifier {
                     if resp.status().as_u16() == 429 {
                         warn!("Discord rate limited; will retry");
                     }
-                    last_err = Some(anyhow::anyhow!(
-                        "Discord returned HTTP {}",
-                        resp.status()
-                    ));
+                    last_err = Some(anyhow::anyhow!("Discord returned HTTP {}", resp.status()));
                 }
                 Err(e) => {
                     warn!(error = %e, "Discord notification request failed");
@@ -137,12 +131,7 @@ impl Notifier for DiscordNotifier {
         if let Some(url) = &self.webhook_url {
             let payload = serde_json::json!({ "content": content });
 
-            return self.send_with_retry(|| {
-                self.client
-                    .post(url)
-                    .json(&payload)
-                    .send()
-            });
+            return self.send_with_retry(|| self.client.post(url).json(&payload).send());
         }
 
         if let (Some(token), Some(channel_id)) = (&self.bot_token, &self.channel_id) {
