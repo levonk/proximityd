@@ -121,6 +121,16 @@ enum Commands {
         #[arg(long)]
         force: bool,
     },
+    /// Generate shell completion script
+    Completion {
+        /// Shell type (bash, zsh, fish)
+        #[arg(value_name = "SHELL")]
+        shell: String,
+
+        /// Output file path (default: stdout)
+        #[arg(long, value_name = "FILE")]
+        output: Option<PathBuf>,
+    },
 }
 
 async fn run_daemon(
@@ -650,6 +660,18 @@ fn main() -> Result<()> {
 
                 if let Err(e) = btnotify::cli::run_uninstall(*force) {
                     error!("Uninstall error: {e}");
+                    std::process::exit(1);
+                }
+                return Ok(());
+            }
+            Commands::Completion { shell, output } => {
+                let mut cmd = Cli::command();
+                let args = btnotify::cli::CompletionArgs {
+                    shell: shell.clone(),
+                    output: output.clone(),
+                };
+                if let Err(e) = btnotify::cli::generate_completion(&mut cmd, args) {
+                    eprintln!("Completion generation error: {e}");
                     std::process::exit(1);
                 }
                 return Ok(());

@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 2
 parallel_id: 2
 branch: "feature/current/cli-standards/story-02-002-shell-completion"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,17 +27,17 @@ Implement shell completion script generation for bash, zsh, and fish shells. Thi
 
 ## Sub-Tasks
 
-- [ ] Create `src/cli/completion.rs` module
-- [ ] Implement bash completion generation using clap
-- [ ] Implement zsh completion generation using clap
-- [ ] Implement fish completion generation using clap
-- [ ] Ensure completions cover all CLI commands and subcommands
-- [ ] Ensure completions cover all flags and arguments
-- [ ] Add completion subcommand to CLI: `proximityd completion <shell>`
-- [ ] Support shells: bash, zsh, fish
-- [ ] Output completion script to stdout by default
-- [ ] Add `--output` flag to write completion to file
-- [ ] Add tests for completion generation
+- [x] Create `src/cli/completion.rs` module
+- [x] Implement bash completion generation using clap
+- [x] Implement zsh completion generation using clap
+- [x] Implement fish completion generation using clap
+- [x] Ensure completions cover all CLI commands and subcommands
+- [x] Ensure completions cover all flags and arguments
+- [x] Add completion subcommand to CLI: `proximityd completion <shell>`
+- [x] Support shells: bash, zsh, fish
+- [x] Output completion script to stdout by default
+- [x] Add `--output` flag to write completion to file
+- [x] Add tests for completion generation
 - [ ] Test completion scripts manually in each shell
 
 ## Relevant Files
@@ -50,14 +50,14 @@ Implement shell completion script generation for bash, zsh, and fish shells. Thi
 
 ## Acceptance Criteria
 
-- [ ] `proximityd completion bash` generates valid bash completion
-- [ ] `proximityd completion zsh` generates valid zsh completion
-- [ ] `proximityd completion fish` generates valid fish completion
-- [ ] Completions cover all commands: status, export, discover, etc.
-- [ ] Completions cover all flags: --help, --version, --config, etc.
-- [ ] `proximityd completion bash --output /path/to/file` writes to file
-- [ ] Generated completion scripts are syntactically valid
-- [ ] All completion functionality has tests
+- [x] `proximityd completion bash` generates valid bash completion
+- [x] `proximityd completion zsh` generates valid zsh completion
+- [x] `proximityd completion fish` generates valid fish completion
+- [x] Completions cover all commands: status, export, discover, etc.
+- [x] Completions cover all flags: --help, --version, --config, etc.
+- [x] `proximityd completion bash --output /path/to/file` writes to file
+- [x] Generated completion scripts are syntactically valid
+- [x] All completion functionality has tests
 
 ## Test Plan
 
