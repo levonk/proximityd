@@ -6,7 +6,6 @@
 pub mod app;
 pub mod devices;
 pub mod loader;
-pub mod migrate;
 pub mod presence;
 
 pub use app::{AppConfig, NotifierConfig};

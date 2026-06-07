@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use tracing::{info, warn};
 
 use super::{AppConfig, DevicesConfig, Identifier, PresenceConfig};
-use super::migrate::migrate_devices_to_presence;
 
 const APP_QUALIFIER: &str = "com";
 const APP_ORG: &str = "myorg";
@@ -83,23 +82,26 @@ pub fn load_devices(path: Option<PathBuf>) -> Result<DevicesConfig> {
 ///
 /// A missing file is allowed and returns an empty `PresenceConfig`.
 ///
-/// If presence.toml is missing but devices.toml exists, automatically
-/// migrates the legacy config to the new format.
+/// If a legacy `devices.toml` file is detected, returns an error with
+/// migration instructions.
 ///
 /// Identifier values are automatically normalized (lowercase + trim) on load.
 pub fn load_presence(path: Option<PathBuf>) -> Result<PresenceConfig> {
     let file_path = path.unwrap_or_else(|| resolve_config_dir().join(PRESENCE_FILE));
     let devices_path = file_path.parent().unwrap().join(DEVICES_FILE);
 
+    // Check for legacy devices.toml and error if found
+    if devices_path.exists() {
+        return Err(anyhow::anyhow!(
+            "Legacy config format detected: devices.toml is no longer supported. \
+            Please rename devices.toml to presence.toml and update the format according to the documentation. \
+            See https://github.com/levonk/proximityd for migration instructions."
+        ));
+    }
+
     if !file_path.exists() {
-        if devices_path.exists() {
-            info!("Presence config not found, but legacy devices.toml exists; auto-migrating");
-            migrate_devices_to_presence(devices_path.clone(), file_path.clone())
-                .context("Failed to auto-migrate legacy devices config")?;
-        } else {
-            warn!("Presence config not found at {file_path:?}; using empty mapping");
-            return Ok(PresenceConfig::default());
-        }
+        warn!("Presence config not found at {file_path:?}; using empty mapping");
+        return Ok(PresenceConfig::default());
     }
 
     let contents = std::fs::read_to_string(&file_path)
@@ -273,6 +275,27 @@ name = "Alice"
         let missing = PathBuf::from("/nonexistent/presence.toml");
         let presence = load_presence(Some(missing)).expect("load presence");
         assert!(presence.parties.is_empty());
+    }
+
+    #[test]
+    fn load_presence_errors_on_legacy_devices_toml() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let _devices_path = write_temp_config(
+            &dir,
+            "devices.toml",
+            r#"
+[devices."AA:BB:CC:DD:EE:FF"]
+mac = "AA:BB:CC:DD:EE:FF"
+name = "Test Device"
+"#,
+        );
+        let presence_path = dir.path().join("presence.toml");
+
+        let result = load_presence(Some(presence_path));
+        assert!(result.is_err(), "should error when devices.toml exists");
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("Legacy config format detected"), "error should mention legacy format");
+        assert!(error_msg.contains("devices.toml"), "error should mention devices.toml");
     }
 
     #[test]
