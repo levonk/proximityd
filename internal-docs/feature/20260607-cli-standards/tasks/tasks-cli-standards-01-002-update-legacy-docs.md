@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 1
 parallel_id: 2
 branch: "feature/current/cli-standards/story-01-002-update-legacy-docs"
-status: "in_progress"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: []

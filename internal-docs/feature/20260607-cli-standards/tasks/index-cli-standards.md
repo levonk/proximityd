@@ -11,13 +11,13 @@ This index summarizes all stories for implementing CLI standards compliance and 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
 | 01-001 | Remove migration module and update config loader | feature/current/cli-standards/story-01-001-remove-migration-module | None | Parallel-safe: true | src/config | [x] Done |
-| 01-002 | Update documentation for legacy config removal | feature/current/cli-standards/story-01-002-update-legacy-docs | None | Parallel-safe: true | README.md, AGENTS.md | [~] In-Progress |
+| 01-002 | Update documentation for legacy config removal | feature/current/cli-standards/story-01-002-update-legacy-docs | None | Parallel-safe: true | README.md, AGENTS.md | [x] Done |
 
 ### Phase 02: Install/Uninstall and Shell Completion
 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
-| 02-001 | Implement install/uninstall functionality | feature/current/cli-standards/story-02-001-install-uninstall | 01-001 | Parallel-safe: true | src/cli/install |
+| 02-001 | Implement install/uninstall functionality | feature/current/cli-standards/story-02-001-install-uninstall | 01-001 | Parallel-safe: true | src/cli/install | [~] In-Progress |
 | 02-002 | Generate shell completion scripts | feature/current/cli-standards/story-02-002-shell-completion | None | Parallel-safe: true | src/cli/completion |
 | 02-003 | Add config file initialization | feature/current/cli-standards/story-02-003-config-init | 01-001 | Parallel-safe: true | src/config/loader |
 

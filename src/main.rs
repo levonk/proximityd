@@ -1,7 +1,7 @@
 use btnotify::config;
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use glob::glob;
 use once_cell::sync::Lazy;
 use std::io::{self, Read};
@@ -64,6 +64,10 @@ struct Cli {
     #[arg(long)]
     health_check: bool,
 
+    /// Generate shell completion script (bash, zsh, fish)
+    #[arg(long, value_name = "SHELL")]
+    generate: Option<String>,
+
     /// Discover identifier correlations from signal log
     #[command(subcommand)]
     command: Option<Commands>,
@@ -104,6 +108,18 @@ enum Commands {
         /// Output file path (default: stdout)
         #[arg(long)]
         output: Option<PathBuf>,
+    },
+    /// Install proximityd: generate shell completions and initialize config files
+    Install {
+        /// Force installation without confirmation
+        #[arg(long)]
+        force: bool,
+    },
+    /// Uninstall proximityd: remove completions and optionally config files
+    Uninstall {
+        /// Force uninstall without confirmation
+        #[arg(long)]
+        force: bool,
     },
 }
 
@@ -552,6 +568,31 @@ fn main() -> Result<()> {
         }
     }
 
+    // Generate shell completions
+    if let Some(ref shell) = cli.generate {
+        use clap_complete::{generate, shells::Bash, shells::Fish, shells::Zsh};
+
+        let mut cmd = Cli::command();
+        let shell_lower = shell.to_lowercase();
+
+        match shell_lower.as_str() {
+            "bash" => {
+                generate(Bash, &mut cmd, "proximityd", &mut std::io::stdout());
+            }
+            "zsh" => {
+                generate(Zsh, &mut cmd, "proximityd", &mut std::io::stdout());
+            }
+            "fish" => {
+                generate(Fish, &mut cmd, "proximityd", &mut std::io::stdout());
+            }
+            _ => {
+                eprintln!("Unsupported shell: {}. Supported: bash, zsh, fish", shell);
+                std::process::exit(1);
+            }
+        }
+        return Ok(());
+    }
+
     // Handle subcommands
     if let Some(ref command) = cli.command {
         match command {
@@ -589,6 +630,26 @@ fn main() -> Result<()> {
 
                 if let Err(e) = run_export(format.clone(), since.clone(), output.clone()) {
                     error!("Export error: {e}");
+                    std::process::exit(1);
+                }
+                return Ok(());
+            }
+            Commands::Install { force } => {
+                // Initialize logging with defaults for install command
+                init_logging(&cli, None)?;
+
+                if let Err(e) = btnotify::cli::run_install(*force) {
+                    error!("Install error: {e}");
+                    std::process::exit(1);
+                }
+                return Ok(());
+            }
+            Commands::Uninstall { force } => {
+                // Initialize logging with defaults for uninstall command
+                init_logging(&cli, None)?;
+
+                if let Err(e) = btnotify::cli::run_uninstall(*force) {
+                    error!("Uninstall error: {e}");
                     std::process::exit(1);
                 }
                 return Ok(());

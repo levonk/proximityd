@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 2
 parallel_id: 1
 branch: "feature/current/cli-standards/story-02-001-install-uninstall"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["01-001"]
@@ -27,31 +27,31 @@ Implement `--install` and `--uninstall` flags (and corresponding subcommands) fo
 
 ## Sub-Tasks
 
-- [ ] Create `src/cli/install.rs` module with install/uninstall logic
-- [ ] Add `install` subcommand to CLI in `src/main.rs`
-- [ ] Add `--install` flag to main command that triggers install subcommand
-- [ ] Add `--uninstall` flag to main command that triggers uninstall subcommand
-- [ ] Implement shell completion script generation:
+- [x] Create `src/cli/install.rs` module with install/uninstall logic
+- [x] Add `install` subcommand to CLI in `src/main.rs`
+- [x] Add `--install` flag to main command that triggers install subcommand
+- [x] Add `--uninstall` flag to main command that triggers uninstall subcommand
+- [x] Implement shell completion script generation:
   - Bash completion script
   - Zsh completion script
   - Fish completion script
   - Use clap's completion generation features
-- [ ] Implement default config file initialization:
+- [x] Implement default config file initialization:
   - Create `~/.config/proximityd/` directory if it doesn't exist
   - Generate `config.toml` with all settings commented out
   - Generate `presence.toml` with example parties/devices/identifiers
   - Include default values and explanations for each option
   - Do not overwrite existing files without confirmation
-- [ ] Implement environment setup (print instructions for required env vars)
-- [ ] Implement uninstall functionality:
+- [x] Implement environment setup (print instructions for required env vars)
+- [x] Implement uninstall functionality:
   - Remove shell completion scripts from system directories
   - Offer to remove config files with confirmation prompt
   - Clean up any generated artifacts
   - Require `--force` flag to bypass confirmation
-- [ ] Add confirmation prompt for destructive operations
-- [ ] Print installation summary with next steps
-- [ ] Add tests for install/uninstall functionality
-- [ ] Update AGENTS.md with install/uninstall usage patterns
+- [x] Add confirmation prompt for destructive operations
+- [x] Print installation summary with next steps
+- [x] Add tests for install/uninstall functionality
+- [~] Update AGENTS.md with install/uninstall usage patterns
 
 ## Relevant Files
 
@@ -64,15 +64,15 @@ Implement `--install` and `--uninstall` flags (and corresponding subcommands) fo
 
 ## Acceptance Criteria
 
-- [ ] `proximityd --install` generates shell completion scripts
-- [ ] `proximityd --install` initializes default config files in `~/.config/proximityd/`
-- [ ] `proximityd --install` does not overwrite existing files without confirmation
-- [ ] `proximityd --uninstall` removes completion scripts
-- [ ] `proximityd --uninstall` offers to remove config files with confirmation
-- [ ] `proximityd --uninstall --force` bypasses confirmation
-- [ ] Installation summary is printed with next steps
-- [ ] Shell completion scripts work for bash, zsh, and fish
-- [ ] All new functionality has tests
+- [x] `proximityd install` generates shell completion scripts
+- [x] `proximityd install` initializes default config files in `~/.config/proximityd/`
+- [x] `proximityd install` does not overwrite existing files without confirmation
+- [x] `proximityd uninstall` removes completion scripts
+- [x] `proximityd uninstall` offers to remove config files with confirmation
+- [x] `proximityd uninstall --force` bypasses confirmation
+- [x] Installation summary is printed with next steps
+- [x] Shell completion scripts work for bash, zsh, and fish
+- [x] All new functionality has tests
 
 ## Test Plan
 

@@ -51,6 +51,23 @@ just doctor      # Health check
 just quality     # lint + test + typecheck
 ```
 
+### Install/Uninstall
+```bash
+# Install proximityd (generates shell completions and initializes config)
+proximityd install
+
+# Uninstall proximityd (removes completions, prompts for config removal)
+proximityd uninstall
+
+# Force uninstall without prompts
+proximityd uninstall --force
+
+# Generate shell completion scripts manually
+proximityd --generate bash  # Output to stdout
+proximityd --generate zsh
+proximityd --generate fish
+```
+
 ### Internal Targets (called by devbox scripts, not directly by agents)
 | Target | Command |
 |--------|---------|
@@ -70,11 +87,8 @@ just quality     # lint + test + typecheck
 src/
   main.rs           # CLI entry point (clap), daemon mode, logging init
   lib.rs            # Public module re-exports
-  bluetooth/        # BLE scanning via bluez-async (Linux only)
-    adapter.rs      # Abstract adapter trait
-    bluez.rs        # BlueZ-specific implementation
-    scan_loop.rs    # Async scan loop + shutdown handling
-    types.rs        # BLE data types (MAC, RSSI, etc.)
+  cli/              # CLI utilities (install/uninstall)
+    install.rs      # Install/uninstall functionality
   config/           # TOML config loading
     app.rs          # AppConfig struct (scan intervals, thresholds, notifiers)
     devices.rs      # DevicesConfig (MAC → name mapping)
@@ -118,6 +132,7 @@ tests/
 - Daemon mode loads `config.toml` and `presence.toml` at startup.
 - Default config dir: `~/.config/proximityd/` (or `PROXIMITYD_CONFIG_DIR` override).
 - Example configs are in repo root: `config.example.toml`, `presence.example.toml`.
+- Run `proximityd install` to initialize config files and shell completions.
 
 ### 5. Logging is config-aware but CLI/env takes precedence
 - Log level resolution order: `PROXIMITYD_LOG_LEVEL` env → CLI `-q`/`-v` flags → `config.toml` → default `INFO`.
