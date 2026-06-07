@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/generic-presence-notify/prd-generic-presence-no
 phase: 5
 parallel_id: 1
 branch: "feature/current/generic-presence-notify/story-05-001-new-notifiers"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["01-004"]
