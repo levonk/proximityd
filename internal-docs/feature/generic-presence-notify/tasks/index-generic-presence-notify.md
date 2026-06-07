@@ -49,4 +49,4 @@ Generated from PRD: `internal-docs/feature/generic-presence-notify/prd-generic-p
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------ | ------------ | ------------- | ------- |
 | 05-001 | New Notifiers (Slack, Webhook, MQTT) | [x] Done | feature/current/generic-presence-notify/story-05-001-new-notifiers | 01-004 | true | src/notifier/ |
-| 05-002 | status/export CLI and Documentation | [~] In-Progress | feature/current/generic-presence-notify/story-05-002-status-export-cli | 01-001, 01-004 | true | src/main.rs, docs/ |
+| 05-002 | status/export CLI and Documentation | [x] Done | feature/current/generic-presence-notify/story-05-002-status-export-cli | 01-001, 01-004 | true | src/main.rs, docs/ |

@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/generic-presence-notify/prd-generic-presence-no
 phase: 5
 parallel_id: 2
 branch: "feature/current/generic-presence-notify/story-05-002-status-export-cli"
-status: "in_progress"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["01-001", "01-004"]
