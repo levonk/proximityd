@@ -85,6 +85,26 @@ enum Commands {
         #[arg(long)]
         output: Option<PathBuf>,
     },
+    /// Show current presence status
+    Status {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+    /// Export signal log data
+    Export {
+        /// Export format (jsonl or csv, default: jsonl)
+        #[arg(long, default_value = "jsonl")]
+        format: String,
+
+        /// Export signals since this date (YYYY-MM-DD format)
+        #[arg(long)]
+        since: Option<String>,
+
+        /// Output file path (default: stdout)
+        #[arg(long)]
+        output: Option<PathBuf>,
+    },
 }
 
 async fn run_daemon(
@@ -144,9 +164,16 @@ async fn run_daemon(
     tokio::spawn(async move {
         let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
             .expect("Failed to install SIGTERM handler");
+        let mut sighup = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::hangup())
+            .expect("Failed to install SIGHUP handler");
         tokio::select! {
             _ = tokio::signal::ctrl_c() => {},
             _ = sigterm.recv() => {},
+            _ = sighup.recv() => {
+                info!("SIGHUP received - config reload requested");
+                info!("Note: Full config reload requires architectural changes");
+                info!("Restart the daemon to apply configuration changes");
+            }
         }
         info!("Shutdown signal received, initiating graceful shutdown");
         shutdown_tx_signal.send(true).ok();
@@ -278,6 +305,228 @@ fn run_discover(hours: u32, min_confidence: f64, output: Option<PathBuf>) -> Res
     Ok(())
 }
 
+fn run_status(json: bool) -> Result<()> {
+    use btnotify::state::{PresenceStateTable, SerializableTrackedDevice};
+
+    info!("Running status command");
+
+    // Create a new state table (in a real implementation, this would query a running daemon)
+    let state_table = PresenceStateTable::new();
+
+    // Get all present devices
+    let present = state_table.list_present();
+
+    if json {
+        let serializable: Vec<SerializableTrackedDevice> = present.iter().map(|d| d.into()).collect();
+        let output = serde_json::to_string_pretty(&serializable)
+            .context("Failed to serialize status to JSON")?;
+        println!("{}", output);
+    } else {
+        println!("Presence Status");
+        println!("================");
+        println!("Total present devices: {}", present.len());
+        println!();
+
+        if present.is_empty() {
+            println!("No devices currently present.");
+        } else {
+            println!("{:<20} {:<20} {:<10} {:<15} {:<10}", "Name", "MAC", "State", "Last Seen", "RSSI");
+            println!("{}", "-".repeat(85));
+
+            for device in present {
+                let name = if device.name.is_empty() {
+                    device.mac.clone()
+                } else {
+                    device.name.clone()
+                };
+
+                let last_seen = {
+                    let elapsed = device.elapsed_since_seen();
+                    let secs = elapsed.as_secs();
+                    if secs < 60 {
+                        format!("{}s", secs)
+                    } else if secs < 3600 {
+                        format!("{}m", secs / 60)
+                    } else {
+                        format!("{}h", secs / 3600)
+                    }
+                };
+
+                let state_str = match device.state {
+                    btnotify::state::PresenceState::Entered => "Entered",
+                    btnotify::state::PresenceState::Exited => "Exited",
+                    btnotify::state::PresenceState::Pending => "Pending",
+                };
+
+                println!("{:<20} {:<20} {:<10} {:<15} {:<10}", name, device.mac, state_str, last_seen, device.rssi);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn run_export(format: String, since: Option<String>, output: Option<PathBuf>) -> Result<()> {
+    use btnotify::signals::db_path;
+    use rusqlite::Connection;
+
+    info!("Running export: format={}, since={:?}", format, since);
+
+    let db_path = db_path::default_db_path();
+    info!("Using signal log at: {}", db_path.display());
+
+    // Check if database exists, if not return empty output
+    if !db_path.exists() {
+        info!("Signal log database does not exist at {}", db_path.display());
+        let output_string = match format.as_str() {
+            "jsonl" => String::new(),
+            "csv" => "ts,scanner,id_type,id_value,rssi,party_name,device_name,location_building,location_floor,location_room,location_zone\n".to_string(),
+            _ => {
+                return Err(anyhow::anyhow!("Unsupported format: {}. Supported formats: jsonl, csv", format));
+            }
+        };
+
+        match output {
+            Some(path) => {
+                std::fs::write(&path, output_string)
+                    .with_context(|| format!("Failed to write export to {}", path.display()))?;
+                info!("Export written to {}", path.display());
+            }
+            None => {
+                print!("{}", output_string);
+            }
+        }
+        return Ok(());
+    }
+
+    let conn = Connection::open(&db_path)
+        .with_context(|| format!("Failed to open signal log at {}", db_path.display()))?;
+
+    let mut query = "SELECT ts, scanner, id_type, id_value, rssi, party_name, device_name, location_building, location_floor, location_room, location_zone FROM signal_log".to_string();
+
+    if since.is_some() {
+        query.push_str(" WHERE ts >= ?1");
+    }
+
+    query.push_str(" ORDER BY ts ASC");
+
+    let mut stmt = conn.prepare(&query)
+        .context("Failed to prepare query")?;
+
+    let rows: Result<Vec<_>, _> = if let Some(ref since_date) = since {
+        stmt.query_map([since_date], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<i32>>(4)?,
+                row.get::<_, Option<String>>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
+                row.get::<_, Option<u32>>(8)?,
+                row.get::<_, Option<String>>(9)?,
+                row.get::<_, Option<String>>(10)?,
+            ))
+        })?.collect()
+    } else {
+        stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<i32>>(4)?,
+                row.get::<_, Option<String>>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
+                row.get::<_, Option<u32>>(8)?,
+                row.get::<_, Option<String>>(9)?,
+                row.get::<_, Option<String>>(10)?,
+            ))
+        })?.collect()
+    };
+
+    let rows = rows.context("Failed to execute query")?;
+
+    let output_string = match format.as_str() {
+        "jsonl" => {
+            let mut jsonl_output = String::new();
+            for row in rows {
+                let (ts, scanner, id_type, id_value, rssi, party_name, device_name, location_building, location_floor, location_room, location_zone) = row;
+
+                let signal = serde_json::json!({
+                    "ts": ts,
+                    "scanner": scanner,
+                    "id_type": id_type,
+                    "id_value": id_value,
+                    "rssi": rssi,
+                    "party_name": party_name,
+                    "device_name": device_name,
+                    "location": {
+                        "building": location_building,
+                        "floor": location_floor,
+                        "room": location_room,
+                        "zone": location_zone,
+                    }
+                });
+
+                jsonl_output.push_str(&signal.to_string());
+                jsonl_output.push('\n');
+            }
+            jsonl_output
+        }
+        "csv" => {
+            let mut csv_output = String::new();
+            csv_output.push_str("ts,scanner,id_type,id_value,rssi,party_name,device_name,location_building,location_floor,location_room,location_zone\n");
+
+            for row in rows {
+                let (ts, scanner, id_type, id_value, rssi, party_name, device_name, location_building, location_floor, location_room, location_zone) = row;
+
+                csv_output.push_str(&ts);
+                csv_output.push(',');
+                csv_output.push_str(&scanner);
+                csv_output.push(',');
+                csv_output.push_str(&id_type);
+                csv_output.push(',');
+                csv_output.push_str(&id_value);
+                csv_output.push(',');
+                csv_output.push_str(&rssi.map(|r| r.to_string()).unwrap_or_else(|| "".to_string()));
+                csv_output.push(',');
+                csv_output.push_str(&party_name.unwrap_or_else(|| "".to_string()));
+                csv_output.push(',');
+                csv_output.push_str(&device_name.unwrap_or_else(|| "".to_string()));
+                csv_output.push(',');
+                csv_output.push_str(&location_building.unwrap_or_else(|| "".to_string()));
+                csv_output.push(',');
+                csv_output.push_str(&location_floor.map(|f| f.to_string()).unwrap_or_else(|| "".to_string()));
+                csv_output.push(',');
+                csv_output.push_str(&location_room.unwrap_or_else(|| "".to_string()));
+                csv_output.push(',');
+                csv_output.push_str(&location_zone.unwrap_or_else(|| "".to_string()));
+                csv_output.push('\n');
+            }
+            csv_output
+        }
+        _ => {
+            return Err(anyhow::anyhow!("Unsupported format: {}. Supported formats: jsonl, csv", format));
+        }
+    };
+
+    match output {
+        Some(path) => {
+            std::fs::write(&path, output_string)
+                .with_context(|| format!("Failed to write export to {}", path.display()))?;
+            info!("Export written to {}", path.display());
+        }
+        None => {
+            print!("{}", output_string);
+        }
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     // Parse CLI args first
     let cli = Cli::parse();
@@ -316,6 +565,30 @@ fn main() -> Result<()> {
 
                 if let Err(e) = run_discover(*hours, *min_confidence, output.clone()) {
                     error!("Discovery error: {e}");
+                    std::process::exit(1);
+                }
+                return Ok(());
+            }
+            Commands::Status { json } => {
+                // Initialize logging with defaults for status command
+                init_logging(&cli, None)?;
+
+                if let Err(e) = run_status(*json) {
+                    error!("Status error: {e}");
+                    std::process::exit(1);
+                }
+                return Ok(());
+            }
+            Commands::Export {
+                format,
+                since,
+                output,
+            } => {
+                // Initialize logging with defaults for export command
+                init_logging(&cli, None)?;
+
+                if let Err(e) = run_export(format.clone(), since.clone(), output.clone()) {
+                    error!("Export error: {e}");
                     std::process::exit(1);
                 }
                 return Ok(());

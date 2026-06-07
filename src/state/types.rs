@@ -1,7 +1,8 @@
+use serde::Serialize;
 use std::time::Instant;
 
 /// The presence state of a tracked device.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum PresenceState {
     /// Device has crossed the enter threshold and debounce period.
     Entered,
@@ -24,6 +25,28 @@ pub struct TrackedDevice {
     pub rssi: i16,
     /// Current presence state.
     pub state: PresenceState,
+}
+
+/// Serializable version of TrackedDevice for JSON output.
+#[derive(Debug, Clone, Serialize)]
+pub struct SerializableTrackedDevice {
+    pub mac: String,
+    pub name: String,
+    pub last_seen_secs_ago: u64,
+    pub rssi: i16,
+    pub state: PresenceState,
+}
+
+impl From<&TrackedDevice> for SerializableTrackedDevice {
+    fn from(device: &TrackedDevice) -> Self {
+        Self {
+            mac: device.mac.clone(),
+            name: device.name.clone(),
+            last_seen_secs_ago: device.elapsed_since_seen().as_secs(),
+            rssi: device.rssi,
+            state: device.state,
+        }
+    }
 }
 
 impl TrackedDevice {

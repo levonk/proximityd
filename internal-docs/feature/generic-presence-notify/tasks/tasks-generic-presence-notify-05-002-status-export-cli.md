@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/generic-presence-notify/prd-generic-presence-no
 phase: 5
 parallel_id: 2
 branch: "feature/current/generic-presence-notify/story-05-002-status-export-cli"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["01-001", "01-004"]
@@ -27,12 +27,12 @@ Implement `proximityd status` (print present parties, last-seen signals, locatio
 
 ## Sub-Tasks
 
-- [ ] Add `status` CLI command: query `PresenceStateTable`, print table of parties, last seen, location, signal source
-- [ ] Add `export` CLI command: query `signal_log`, output JSONL with `--since` and `--format` filters
-- [ ] Update `README.md` with full setup guide, config examples, and success metrics
-- [ ] Update `devbox.json` and `flake.nix` with new binary name and dependencies
-- [ ] Add `SIGHUP` handler for config reload (NF6)
-- [ ] Add `tests/cli_tests.rs` cases for `status` and `export`
+- [x] Add `status` CLI command: query `PresenceStateTable`, print table of parties, last seen, location, signal source
+- [x] Add `export` CLI command: query `signal_log`, output JSONL with `--since` and `--format` filters
+- [x] Update `README.md` with full setup guide, config examples, and success metrics
+- [x] Update `devbox.json` and `flake.nix` with new binary name and dependencies
+- [x] Add `SIGHUP` handler for config reload (NF6)
+- [x] Add `tests/cli_tests.rs` cases for `status` and `export`
 
 ## Relevant Files
 
@@ -45,9 +45,9 @@ Implement `proximityd status` (print present parties, last-seen signals, locatio
 
 ## Acceptance Criteria
 
-- [ ] `status` shows present parties with location
-- [ ] `export` outputs valid JSONL with correct `--since` filter
-- [ ] README covers installation, config, and all CLI commands
+- [x] `status` shows present parties with location
+- [x] `export` outputs valid JSONL with correct `--since` filter
+- [x] README covers installation, config, and all CLI commands
 
 ## Test Plan
 

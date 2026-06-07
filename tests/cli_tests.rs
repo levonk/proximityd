@@ -76,3 +76,43 @@ fn test_stdin() {
         .success()
         .stderr(predicate::str::contains("Processing content from stdin"));
 }
+
+#[test]
+fn test_status() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("status")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Presence Status"));
+}
+
+#[test]
+fn test_status_json() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("status")
+        .arg("--json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("[")); // JSON array start
+}
+
+#[test]
+fn test_export() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("export")
+        .arg("--format")
+        .arg("jsonl")
+        .assert()
+        .success(); // May have no data, but should not fail
+}
+
+#[test]
+fn test_export_csv() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("export")
+        .arg("--format")
+        .arg("csv")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ts,scanner")); // CSV header
+}
