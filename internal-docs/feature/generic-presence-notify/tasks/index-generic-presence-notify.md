@@ -31,7 +31,7 @@ Generated from PRD: `internal-docs/feature/generic-presence-notify/prd-generic-p
 | -------- | ----------- | ------ | ------ | ------------ | ------------- | ------- |
 | 02-001 | WiFi ARP Scanner | [x] Done | feature/current/generic-presence-notify/story-02-001-wifi-arp-scanner | 01-003 | true | src/scanner/ |
 | 02-002 | Ping Sweep Scanner | [x] Done | feature/current/generic-presence-notify/story-02-002-ping-sweep-scanner | 01-003 | true | src/scanner/ |
-| 02-003 | mDNS Scanner | [ ] Todo | feature/current/generic-presence-notify/story-02-003-mdns-scanner | 01-003 | true | src/scanner/ |
+| 02-003 | mDNS Scanner | [~] In-Progress | feature/current/generic-presence-notify/story-02-003-mdns-scanner | 01-003 | true | src/scanner/ |
 
 ### Phase 03 — Intelligence
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |

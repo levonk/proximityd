@@ -23,6 +23,9 @@ pub enum IdType {
     /// mDNS broadcast identifier.
     #[serde(rename = "mdns")]
     Mdns,
+    /// Hostname from mDNS or DNS resolution.
+    #[serde(rename = "hostname")]
+    Hostname,
     /// Generic or unknown identifier.
     #[serde(rename = "generic")]
     Generic,
@@ -37,6 +40,7 @@ impl std::fmt::Display for IdType {
             IdType::IpV4 => write!(f, "ip_v4"),
             IdType::IpV6 => write!(f, "ip_v6"),
             IdType::Mdns => write!(f, "mdns"),
+            IdType::Hostname => write!(f, "hostname"),
             IdType::Generic => write!(f, "generic"),
         }
     }
@@ -132,6 +136,7 @@ mod tests {
         assert_eq!(IdType::IpV4.to_string(), "ip_v4");
         assert_eq!(IdType::IpV6.to_string(), "ip_v6");
         assert_eq!(IdType::Mdns.to_string(), "mdns");
+        assert_eq!(IdType::Hostname.to_string(), "hostname");
         assert_eq!(IdType::Generic.to_string(), "generic");
     }
 }

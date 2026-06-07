@@ -5,6 +5,7 @@
 //! Each implementation is toggleable via configuration.
 
 pub mod ble;
+pub mod mdns;
 pub mod ping_sweep;
 pub mod scan_loop;
 pub mod types;
