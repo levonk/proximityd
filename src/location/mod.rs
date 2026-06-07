@@ -1,5 +1,8 @@
 use crate::config::presence::{Device, Location, Party};
 
+pub mod gps;
+pub mod ip_geo;
+
 /// Location resolution result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedLocation {

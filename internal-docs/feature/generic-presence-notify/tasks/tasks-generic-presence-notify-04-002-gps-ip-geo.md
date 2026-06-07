@@ -27,12 +27,12 @@ Log GPS coordinates and IP geolocation hints per sighting. GPS via `geoclue` on 
 
 ## Sub-Tasks
 
-- [ ] Add `geoclue-zbus` to `Cargo.toml` (Linux-only dependency)
-- [ ] Create `src/location/gps.rs` — `GpsSource` trait; `GeoclueGps` implementation for Linux
-- [ ] Create `src/location/ip_geo.rs` — fetch public IP via HTTP (non-blocking, short timeout)
-- [ ] Integrate into `SignalLogger::log()`: write `gps_lat`, `gps_lon`, `public_ip` if available
-- [ ] Ensure GPS never blocks scanning: fire-and-forget with timeout
-- [ ] Add `src/location/gps_tests.rs` — unit tests with mocked geoclue responses
+- [x] Add `geoclue-zbus` to `Cargo.toml` (Linux-only dependency)
+- [x] Create `src/location/gps.rs` — `GpsSource` trait; `GeoclueGps` implementation for Linux
+- [x] Create `src/location/ip_geo.rs` — fetch public IP via HTTP (non-blocking, short timeout)
+- [x] Integrate into `SignalLogger::log()`: write `gps_lat`, `gps_lon`, `public_ip` if available
+- [x] Ensure GPS never blocks scanning: fire-and-forget with timeout
+- [x] Add `src/location/gps_tests.rs` — unit tests with mocked geoclue responses
 
 ## Relevant Files
 
@@ -44,10 +44,10 @@ Log GPS coordinates and IP geolocation hints per sighting. GPS via `geoclue` on 
 
 ## Acceptance Criteria
 
-- [ ] GPS coordinates logged when geoclue available
-- [ ] Public IP logged when network available
-- [ ] Missing sources do not block scanning
-- [ ] Unit tests pass
+- [x] GPS coordinates logged when geoclue available
+- [x] Public IP logged when network available
+- [x] Missing sources do not block scanning
+- [x] Unit tests pass
 
 ## Test Plan
 
