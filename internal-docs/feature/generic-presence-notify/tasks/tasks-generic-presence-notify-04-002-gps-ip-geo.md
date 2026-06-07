@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/generic-presence-notify/prd-generic-presence-no
 phase: 4
 parallel_id: 2
 branch: "feature/current/generic-presence-notify/story-04-002-gps-ip-geo"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["01-001", "04-001"]

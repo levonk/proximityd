@@ -43,7 +43,7 @@ Generated from PRD: `internal-docs/feature/generic-presence-notify/prd-generic-p
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------ | ------------ | ------------- | ------- |
 | 04-001 | Hierarchical Location Model | [x] Done | feature/current/generic-presence-notify/story-04-001-hierarchical-location | 01-004 | true | src/location/ |
-| 04-002 | GPS and IP Geolocation Logging | [~] In-Progress | feature/current/generic-presence-notify/story-04-002-gps-ip-geo | 01-001, 04-001 | true | src/location/ |
+| 04-002 | GPS and IP Geolocation Logging | [x] Done | feature/current/generic-presence-notify/story-04-002-gps-ip-geo | 01-001, 04-001 | true | src/location/ |
 
 ### Phase 05 — Polish
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |
