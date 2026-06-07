@@ -37,12 +37,12 @@ Generated from PRD: `internal-docs/feature/generic-presence-notify/prd-generic-p
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------ | ------------ | ------------- | ------- |
 | 03-001 | Discovery Engine + discover CLI | [x] Done | feature/current/generic-presence-notify/story-03-001-discovery-engine | 01-001, 01-004 | true | src/discovery/ |
-| 03-002 | Suggestion Runtime Toggle | [~] In-Progress | feature/current/generic-presence-notify/story-03-002-suggestion-runtime | 03-001 | true | src/discovery/ |
+| 03-002 | Suggestion Runtime Toggle | [x] Done | feature/current/generic-presence-notify/story-03-002-suggestion-runtime | 03-001 | true | src/discovery/ |
 
 ### Phase 04 — Location
 | Story ID | Story Title | Status | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------ | ------------ | ------------- | ------- |
-| 04-001 | Hierarchical Location Model | [ ] Todo | feature/current/generic-presence-notify/story-04-001-hierarchical-location | 01-004 | true | src/location/ |
+| 04-001 | Hierarchical Location Model | [~] In-Progress | feature/current/generic-presence-notify/story-04-001-hierarchical-location | 01-004 | true | src/location/ |
 | 04-002 | GPS and IP Geolocation Logging | [ ] Todo | feature/current/generic-presence-notify/story-04-002-gps-ip-geo | 01-001, 04-001 | true | src/location/ |
 
 ### Phase 05 — Polish

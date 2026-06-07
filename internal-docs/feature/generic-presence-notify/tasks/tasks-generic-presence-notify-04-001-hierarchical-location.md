@@ -27,11 +27,11 @@ Implement static hierarchical location model (building → floor → room → zo
 
 ## Sub-Tasks
 
-- [ ] Create `src/location/mod.rs` — `Location` struct with `building`, `floor`, `room`, `zone`
-- [ ] Update `presence.toml` schema: support `location` on `party` and `device` levels
-- [ ] Update `PartyConfig` loader to parse location fields
-- [ ] Add location resolution logic: device-level > party-level > scanner-node default > none
-- [ ] Add `src/location/tests.rs` — unit tests for resolution priority
+- [x] Create `src/location/mod.rs` — `Location` struct with `building`, `floor`, `room`, `zone`
+- [x] Update `presence.toml` schema: support `location` on `party` and `device` levels
+- [x] Update `PartyConfig` loader to parse location fields
+- [x] Add location resolution logic: device-level > party-level > scanner-node default > none
+- [x] Add `src/location/tests.rs` — unit tests for resolution priority
 
 ## Relevant Files
 
@@ -41,9 +41,9 @@ Implement static hierarchical location model (building → floor → room → zo
 
 ## Acceptance Criteria
 
-- [ ] `presence.toml` parses location on party and device
-- [ ] Resolution priority correct: device > party > scanner > none
-- [ ] Unit tests pass
+- [x] `presence.toml` parses location on party and device
+- [x] Resolution priority correct: device > party > scanner > none
+- [x] Unit tests pass
 
 ## Test Plan
 

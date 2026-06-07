@@ -46,7 +46,7 @@ pub struct Device {
 }
 
 /// Hierarchical location model.
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default, PartialEq, Eq)]
 pub struct Location {
     /// Building name.
     #[serde(default)]
