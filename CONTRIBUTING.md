@@ -40,7 +40,7 @@ just quality
 ```
 src/
   bluetooth/   # BLE scanning and BlueZ adapter
-  config/      # TOML config loading (config.toml, devices.toml)
+  config/      # TOML config loading (config.toml, presence.toml)
   detection/   # Enter/exit detection engine with debounce
   notifier/    # Pluggable notifier trait + Discord implementation
   state/       # Presence state tracking

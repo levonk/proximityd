@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 1
 parallel_id: 2
 branch: "feature/current/cli-standards/story-01-002-update-legacy-docs"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,19 +27,19 @@ Update all project documentation to remove references to the legacy `devices.tom
 
 ## Sub-Tasks
 
-- [ ] Search for all references to `devices.toml` in documentation files
-- [ ] Remove legacy config references from README.md
-- [ ] Remove migration guide or deprecation notices from README.md
-- [ ] Update config examples in README.md to use only `presence.toml` format
-- [ ] Add migration guide section to README.md for users with legacy configs:
+- [x] Search for all references to `devices.toml` in documentation files
+- [x] Remove legacy config references from README.md
+- [x] Remove migration guide or deprecation notices from README.md
+- [x] Update config examples in README.md to use only `presence.toml` format
+- [x] Add migration guide section to README.md for users with legacy configs:
   - Step-by-step instructions to convert `devices.toml` to `presence.toml`
   - Example conversion showing old vs new format
   - Link to presence.toml schema documentation
-- [ ] Update AGENTS.md to remove any references to legacy migration logic
-- [ ] Update AGENTS.md config section to reference only `presence.toml`
-- [ ] Check and update any example config files in repository root
-- [ ] Add breaking change notice to CHANGELOG.md (if exists)
-- [ ] Verify all documentation is consistent with new config-only approach
+- [x] Update AGENTS.md to remove any references to legacy migration logic
+- [x] Update AGENTS.md config section to reference only `presence.toml`
+- [x] Check and update any example config files in repository root
+- [x] Add breaking change notice to CHANGELOG.md (if exists)
+- [x] Verify all documentation is consistent with new config-only approach
 
 ## Relevant Files
 
@@ -52,12 +52,12 @@ Update all project documentation to remove references to the legacy `devices.tom
 
 ## Acceptance Criteria
 
-- [ ] No references to `devices.toml` or legacy migration exist in README.md
-- [ ] Migration guide is present in README.md with clear steps
-- [ ] AGENTS.md references only `presence.toml` format
-- [ ] Example config files use new format only
-- [ ] Breaking change is documented in CHANGELOG.md
-- [ ] All documentation is consistent and accurate
+- [x] No references to `devices.toml` or legacy migration exist in README.md
+- [x] Migration guide is present in README.md with clear steps
+- [x] AGENTS.md references only `presence.toml` format
+- [x] Example config files use new format only
+- [x] Breaking change is documented in CHANGELOG.md
+- [x] All documentation is consistent and accurate
 
 ## Test Plan
 

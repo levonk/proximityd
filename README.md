@@ -184,13 +184,88 @@ port = 1883
 topic = "proximityd/presence"
 ```
 
+## Migrating from Legacy `devices.toml`
+
+**Breaking Change:** The legacy `devices.toml` format is no longer supported. If you have a legacy config file, you must manually migrate to the new `presence.toml` format.
+
+### Step-by-Step Migration
+
+1. **Backup your existing config:**
+   ```bash
+   cp ~/.config/proximityd/devices.toml ~/.config/proximityd/devices.toml.bak
+   ```
+
+2. **Create the new `presence.toml` file:**
+   ```bash
+   cp presence.example.toml ~/.config/proximityd/presence.toml
+   ```
+
+3. **Convert your device mappings:**
+   - The old format used a flat `[devices."MAC"]` structure
+   - The new format uses a hierarchical `[[parties]]` → `[[parties.devices]]` → `[[parties.devices.identifiers]]` structure
+   - Each device from the old format becomes a device with a BLE MAC identifier in the new format
+
+### Example Conversion
+
+**Old format (`devices.toml`):**
+```toml
+[devices."AA:BB:CC:DD:EE:FF"]
+name = "Alice's iPhone"
+
+[devices."11:22:33:44:55:66"]
+name = "Bob's Android"
+```
+
+**New format (`presence.toml`):**
+```toml
+[[parties]]
+name = "Alice"
+
+  [[parties.devices]]
+  name = "Alice's iPhone"
+
+    [[parties.devices.identifiers]]
+    name = "BLE MAC"
+    type = "ble_mac"
+    value = "AA:BB:CC:DD:EE:FF"
+
+[[parties]]
+name = "Bob"
+
+  [[parties.devices]]
+  name = "Bob's Android"
+
+    [[parties.devices.identifiers]]
+    name = "BLE MAC"
+    type = "ble_mac"
+    value = "11:22:33:44:55:66"
+```
+
+### Additional Features in New Format
+
+The new `presence.toml` format supports:
+- **Multiple identifiers per device** (BLE MAC, WiFi MAC, IP, hostname, etc.)
+- **Location metadata** (building, floor, room, zone)
+- **Flexible party organization** (group devices by person, location, or any logical grouping)
+- **Multiple scanner types** (BLE, WiFi ARP, ping, mDNS)
+
+See the [Configuration](#configuration) section above for complete schema details.
+
+### Error Message
+
+If you attempt to run proximityd with a legacy `devices.toml` file, you will see:
+
+```
+Error: Legacy config format detected: devices.toml is no longer supported.
+Please rename devices.toml to presence.toml and update the format according to the documentation.
+```
+
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
 | `PROXIMITYD_CONFIG_DIR` | Directory containing `config.toml` and `presence.toml` |
 | `PROXIMITYD_CONFIG` | Override config file path |
-| `PROXIMITYD_DEVICES` | Override presence file path (legacy) |
 | `PROXIMITYD_DISCORD_WEBHOOK` | Discord webhook URL (overrides config file) |
 | `PROXIMITYD_LOG_LEVEL` | Override log level (`DEBUG`, `TRACE`, etc.) |
 | `PROXIMITYD_LOG_FORMAT` | Log format: `json` or `pretty` |

@@ -115,9 +115,9 @@ tests/
 - Building on macOS succeeds because the dependency is conditional, but BLE functionality is unavailable.
 
 ### 4. Config files are runtime-required
-- Daemon mode loads `config.toml` and `devices.toml` at startup.
+- Daemon mode loads `config.toml` and `presence.toml` at startup.
 - Default config dir: `~/.config/proximityd/` (or `PROXIMITYD_CONFIG_DIR` override).
-- Example configs are in repo root: `config.example.toml`, `devices.example.toml`.
+- Example configs are in repo root: `config.example.toml`, `presence.example.toml`.
 
 ### 5. Logging is config-aware but CLI/env takes precedence
 - Log level resolution order: `PROXIMITYD_LOG_LEVEL` env → CLI `-q`/`-v` flags → `config.toml` → default `INFO`.
@@ -152,9 +152,8 @@ tests/
 
 | Variable | Purpose |
 |----------|---------|
-| `PROXIMITYD_CONFIG_DIR` | Directory for `config.toml` and `devices.toml` |
+| `PROXIMITYD_CONFIG_DIR` | Directory for `config.toml` and `presence.toml` |
 | `PROXIMITYD_CONFIG` | Override config file path (CLI `--config`) |
-| `PROXIMITYD_DEVICES` | Override devices file path (CLI `--devices`) |
 | `PROXIMITYD_DISCORD_WEBHOOK` | Discord webhook URL override |
 | `PROXIMITYD_LOG_LEVEL` | Override log level |
 | `PROXIMITYD_LOG_FORMAT` | `json` or `pretty` |

@@ -11,7 +11,7 @@ This index summarizes all stories for implementing CLI standards compliance and 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
 | 01-001 | Remove migration module and update config loader | feature/current/cli-standards/story-01-001-remove-migration-module | None | Parallel-safe: true | src/config | [x] Done |
-| 01-002 | Update documentation for legacy config removal | feature/current/cli-standards/story-01-002-update-legacy-docs | None | Parallel-safe: true | README.md, AGENTS.md |
+| 01-002 | Update documentation for legacy config removal | feature/current/cli-standards/story-01-002-update-legacy-docs | None | Parallel-safe: true | README.md, AGENTS.md | [~] In-Progress |
 
 ### Phase 02: Install/Uninstall and Shell Completion
 
