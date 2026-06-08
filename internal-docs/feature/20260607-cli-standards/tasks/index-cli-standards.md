@@ -18,8 +18,8 @@ This index summarizes all stories for implementing CLI standards compliance and 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
 | 02-001 | Implement install/uninstall functionality | feature/current/cli-standards/story-02-001-install-uninstall | 01-001 | Parallel-safe: true | src/cli/install | [x] Done |
-| 02-002 | Generate shell completion scripts | feature/current/cli-standards/story-02-002-shell-completion | None | Parallel-safe: true | src/cli/completion | [~] In-Progress |
-| 02-003 | Add config file initialization | feature/current/cli-standards/story-02-003-config-init | 01-001 | Parallel-safe: true | src/config/loader |
+| 02-002 | Generate shell completion scripts | feature/current/cli-standards/story-02-002-shell-completion | None | Parallel-safe: true | src/cli/completion | [x] Done |
+| 02-003 | Add config file initialization | feature/current/cli-standards/story-02-003-config-init | 01-001 | Parallel-safe: true | src/config/loader | [~] In-Progress |
 
 ### Phase 03: TUI Mode Foundation
 

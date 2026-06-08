@@ -1,10 +1,12 @@
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use std::env;
+use std::fs;
 use std::path::PathBuf;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use super::{AppConfig, DevicesConfig, Identifier, PresenceConfig};
+use super::templates::{DEFAULT_CONFIG_TEMPLATE, DEFAULT_PRESENCE_TEMPLATE};
 
 const APP_QUALIFIER: &str = "com";
 const APP_ORG: &str = "myorg";
@@ -24,18 +26,66 @@ fn resolve_config_dir() -> PathBuf {
     }
 }
 
+/// Initialize config directory and default templates if they don't exist.
+///
+/// This function creates the config directory if missing and writes default
+/// config templates for config.toml and presence.toml if they don't exist.
+/// Existing files are never overwritten.
+pub fn initialize_config(force: bool) -> Result<()> {
+    let config_dir = resolve_config_dir();
+
+    // Create config directory if it doesn't exist
+    if !config_dir.exists() {
+        fs::create_dir_all(&config_dir)
+            .with_context(|| format!("Failed to create config directory at {config_dir:?}"))?;
+        info!("Created config directory at {config_dir:?}");
+    } else {
+        debug!("Config directory already exists at {config_dir:?}");
+    }
+
+    let config_file = config_dir.join(CONFIG_FILE);
+    let presence_file = config_dir.join(PRESENCE_FILE);
+
+    // Write default config.toml if it doesn't exist (or if force is true)
+    if !config_file.exists() || force {
+        if force && config_file.exists() {
+            warn!("Force re-initialization: overwriting {config_file:?}");
+        }
+        fs::write(&config_file, DEFAULT_CONFIG_TEMPLATE)
+            .with_context(|| format!("Failed to write config template to {config_file:?}"))?;
+        info!("Created default config at {config_file:?}");
+    } else {
+        debug!("Config file already exists at {config_file:?}, skipping");
+    }
+
+    // Write default presence.toml if it doesn't exist (or if force is true)
+    if !presence_file.exists() || force {
+        if force && presence_file.exists() {
+            warn!("Force re-initialization: overwriting {presence_file:?}");
+        }
+        fs::write(&presence_file, DEFAULT_PRESENCE_TEMPLATE)
+            .with_context(|| format!("Failed to write presence template to {presence_file:?}"))?;
+        info!("Created default presence config at {presence_file:?}");
+    } else {
+        debug!("Presence config file already exists at {presence_file:?}, skipping");
+    }
+
+    Ok(())
+}
+
 /// Load `AppConfig` from disk.
 ///
 /// If `path` is `Some`, that file is loaded directly.
 /// Otherwise, the function searches `PROXIMITYD_CONFIG_DIR/config.toml`
 /// or falls back to the XDG config directory.
 ///
-/// A missing file is allowed and returns the default `AppConfig`.
+/// A missing file triggers automatic initialization with default templates.
 pub fn load_config(path: Option<PathBuf>) -> Result<AppConfig> {
     let file_path = path.unwrap_or_else(|| resolve_config_dir().join(CONFIG_FILE));
 
     if !file_path.exists() {
-        warn!("Config not found at {file_path:?}; using defaults");
+        info!("Config not found at {file_path:?}; initializing with defaults");
+        initialize_config(false)?;
         return Ok(AppConfig::default());
     }
 
@@ -80,7 +130,7 @@ pub fn load_devices(path: Option<PathBuf>) -> Result<DevicesConfig> {
 /// Otherwise, the function searches `PROXIMITYD_CONFIG_DIR/presence.toml`
 /// or falls back to the XDG config directory.
 ///
-/// A missing file is allowed and returns an empty `PresenceConfig`.
+/// A missing file triggers automatic initialization with default templates.
 ///
 /// If a legacy `devices.toml` file is detected, returns an error with
 /// migration instructions.
@@ -100,7 +150,8 @@ pub fn load_presence(path: Option<PathBuf>) -> Result<PresenceConfig> {
     }
 
     if !file_path.exists() {
-        warn!("Presence config not found at {file_path:?}; using empty mapping");
+        info!("Presence config not found at {file_path:?}; initializing with defaults");
+        initialize_config(false)?;
         return Ok(PresenceConfig::default());
     }
 
@@ -320,5 +371,87 @@ name = "Alice"
 
         let presence = load_presence(Some(path)).expect("load presence");
         assert_eq!(presence.parties[0].devices[0].identifiers[0].value, "aa:bb:cc:dd:ee:ff");
+    }
+
+    #[test]
+    fn initialize_config_creates_directory_and_templates() {
+        let dir = tempfile::tempdir().expect("tempdir");
+
+        // Set environment variable to use temp directory
+        let config_dir = dir.path().to_path_buf();
+        std::env::set_var("PROXIMITYD_CONFIG_DIR", &config_dir);
+
+        let result = initialize_config(false);
+        assert!(result.is_ok(), "initialization should succeed");
+
+        let config_file = config_dir.join(CONFIG_FILE);
+        let presence_file = config_dir.join(PRESENCE_FILE);
+
+        assert!(config_file.exists(), "config.toml should be created");
+        assert!(presence_file.exists(), "presence.toml should be created");
+
+        // Verify templates contain expected content
+        let config_contents = std::fs::read_to_string(&config_file).expect("read config");
+        assert!(config_contents.contains("# proximityd application configuration"), "should contain config header");
+        assert!(config_contents.contains("[general]"), "should contain general section");
+
+        let presence_contents = std::fs::read_to_string(&presence_file).expect("read presence");
+        assert!(presence_contents.contains("# proximityd presence configuration"), "should contain presence header");
+        assert!(presence_contents.contains("[[parties]]"), "should contain parties section");
+
+        // Clean up environment variable
+        std::env::remove_var("PROXIMITYD_CONFIG_DIR");
+    }
+
+    #[test]
+    fn load_config_initializes_on_missing_file() {
+        let dir = tempfile::tempdir().expect("tempdir");
+
+        // Set environment variable to use temp directory
+        let config_dir = dir.path().to_path_buf();
+        std::env::set_var("PROXIMITYD_CONFIG_DIR", &config_dir);
+
+        let config_file = config_dir.join(CONFIG_FILE);
+        assert!(!config_file.exists(), "config should not exist initially");
+
+        // Load should trigger initialization
+        let config = load_config(None).expect("load config should initialize");
+        assert_eq!(config.general.log_level, "info"); // default
+
+        // Verify config file was created
+        assert!(config_file.exists(), "config should be created by load_config");
+
+        // Verify the template was written
+        let config_contents = std::fs::read_to_string(&config_file).expect("read config");
+        assert!(config_contents.contains("# proximityd application configuration"), "should contain default template");
+
+        // Clean up environment variable
+        std::env::remove_var("PROXIMITYD_CONFIG_DIR");
+    }
+
+    #[test]
+    fn load_presence_initializes_on_missing_file() {
+        let dir = tempfile::tempdir().expect("tempdir");
+
+        // Set environment variable to use temp directory
+        let config_dir = dir.path().to_path_buf();
+        std::env::set_var("PROXIMITYD_CONFIG_DIR", &config_dir);
+
+        let presence_file = config_dir.join(PRESENCE_FILE);
+        assert!(!presence_file.exists(), "presence should not exist initially");
+
+        // Load should trigger initialization
+        let presence = load_presence(None).expect("load presence should initialize");
+        assert!(presence.parties.is_empty()); // default
+
+        // Verify presence file was created
+        assert!(presence_file.exists(), "presence should be created by load_presence");
+
+        // Verify the template was written
+        let presence_contents = std::fs::read_to_string(&presence_file).expect("read presence");
+        assert!(presence_contents.contains("# proximityd presence configuration"), "should contain default template");
+
+        // Clean up environment variable
+        std::env::remove_var("PROXIMITYD_CONFIG_DIR");
     }
 }

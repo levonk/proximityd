@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 2
 parallel_id: 3
 branch: "feature/current/cli-standards/story-02-003-config-init"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["01-001"]
@@ -27,29 +27,29 @@ Implement automatic config file initialization on first run. When no config file
 
 ## Sub-Tasks
 
-- [ ] Add default config template for `config.toml` with:
+- [x] Add default config template for `config.toml` with:
   - All settings commented out with `#`
   - Default values shown in comments
   - Explanations for each option
   - Example configurations for common use cases
-- [ ] Add default config template for `presence.toml` with:
+- [x] Add default config template for `presence.toml` with:
   - Example party structure
   - Example device with identifiers
   - All fields commented with explanations
   - Common identifier type examples
-- [ ] Add function to detect if config directory exists
-- [ ] Add function to detect if config files exist
-- [ ] Add function to create config directory if missing
-- [ ] Add function to write default config templates
-- [ ] Integrate initialization into config loader in `src/config/loader.rs`:
+- [x] Add function to detect if config directory exists
+- [x] Add function to detect if config files exist
+- [x] Add function to create config directory if missing
+- [x] Add function to write default config templates
+- [x] Integrate initialization into config loader in `src/config/loader.rs`:
   - On first run, detect missing config files
   - Create default templates automatically
   - Log INFO message when creating default configs
   - Do not overwrite existing files
-- [ ] Add `--init-config` flag to force re-initialization
-- [ ] Add tests for config initialization
-- [ ] Test first-run scenario with no config directory
-- [ ] Test scenario with partial config files
+- [x] Add `--init-config` flag to force re-initialization
+- [x] Add tests for config initialization
+- [x] Test first-run scenario with no config directory
+- [x] Test scenario with partial config files
 
 ## Relevant Files
 
@@ -61,15 +61,15 @@ Implement automatic config file initialization on first run. When no config file
 
 ## Acceptance Criteria
 
-- [ ] First run with no config directory creates `~/.config/proximityd/`
-- [ ] First run creates default `config.toml` with commented settings
-- [ ] First run creates default `presence.toml` with examples
-- [ ] Existing config files are never overwritten
-- [ ] `--init-config` flag forces re-initialization with confirmation
-- [ ] Default configs are valid TOML and can be loaded
-- [ ] All config options have clear explanations in comments
-- [ ] Initialization is logged at INFO level
-- [ ] All initialization logic has tests
+- [x] First run with no config directory creates `~/.config/proximityd/`
+- [x] First run creates default `config.toml` with commented settings
+- [x] First run creates default `presence.toml` with examples
+- [x] Existing config files are never overwritten
+- [x] `--init-config` flag forces re-initialization with confirmation
+- [x] Default configs are valid TOML and can be loaded
+- [x] All config options have clear explanations in comments
+- [x] Initialization is logged at INFO level
+- [x] All initialization logic has tests
 
 ## Test Plan
 

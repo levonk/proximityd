@@ -7,8 +7,9 @@ pub mod app;
 pub mod devices;
 pub mod loader;
 pub mod presence;
+pub mod templates;
 
 pub use app::{AppConfig, NotifierConfig};
 pub use devices::{DeviceConfig, DevicesConfig};
-pub use loader::{load_config, load_devices, load_presence};
+pub use loader::{initialize_config, load_config, load_devices, load_presence};
 pub use presence::{Device, Identifier, IdentifierType, Location, Party, PresenceConfig};

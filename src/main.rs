@@ -68,6 +68,10 @@ struct Cli {
     #[arg(long, value_name = "SHELL")]
     generate: Option<String>,
 
+    /// Force re-initialization of config files with default templates
+    #[arg(long)]
+    init_config: bool,
+
     /// Discover identifier correlations from signal log
     #[command(subcommand)]
     command: Option<Commands>,
@@ -576,6 +580,17 @@ fn main() -> Result<()> {
                 std::process::exit(1);
             }
         }
+    }
+
+    // Force re-initialization of config files
+    if cli.init_config {
+        init_logging(&cli, None)?;
+        if let Err(e) = config::initialize_config(true) {
+            eprintln!("Config initialization error: {e}");
+            std::process::exit(1);
+        }
+        println!("Config files re-initialized with default templates");
+        return Ok(());
     }
 
     // Generate shell completions
