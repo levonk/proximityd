@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 6
 parallel_id: 4
 branch: "feature/current/cli-standards/story-06-004-resource-limits-globbing"
-status: "in_progress"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: []
