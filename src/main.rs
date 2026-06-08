@@ -76,6 +76,10 @@ struct Cli {
     #[arg(long, short = 'i')]
     interactive: bool,
 
+    /// Display manual page
+    #[arg(long)]
+    man: bool,
+
     /// Discover identifier correlations from signal log
     #[command(subcommand)]
     command: Option<Commands>,
@@ -138,6 +142,12 @@ enum Commands {
         /// Output file path (default: stdout)
         #[arg(long, value_name = "FILE")]
         output: Option<PathBuf>,
+    },
+    /// Display manual page
+    Man {
+        /// Command to display manual page for (default: main command)
+        #[arg(value_name = "COMMAND")]
+        command: Option<String>,
     },
 }
 
@@ -597,6 +607,16 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
+    // Display man page
+    if cli.man {
+        let cmd = Cli::command();
+        if let Err(e) = btnotify::cli::display_man_page(&cmd, None) {
+            eprintln!("Man page error: {e}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
+
     // Generate shell completions
     if let Some(ref shell) = cli.generate {
         use clap_complete::{generate, shells::Bash, shells::Fish, shells::Zsh};
@@ -667,7 +687,8 @@ fn main() -> Result<()> {
                 // Initialize logging with defaults for install command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = btnotify::cli::run_install(*force) {
+                let cmd = Cli::command();
+                if let Err(e) = btnotify::cli::run_install(*force, &cmd) {
                     error!("Install error: {e}");
                     std::process::exit(1);
                 }
@@ -691,6 +712,14 @@ fn main() -> Result<()> {
                 };
                 if let Err(e) = btnotify::cli::generate_completion(&mut cmd, args) {
                     eprintln!("Completion generation error: {e}");
+                    std::process::exit(1);
+                }
+                return Ok(());
+            }
+            Commands::Man { command } => {
+                let cmd = Cli::command();
+                if let Err(e) = btnotify::cli::display_man_page(&cmd, command.as_deref()) {
+                    eprintln!("Man page error: {e}");
                     std::process::exit(1);
                 }
                 return Ok(());

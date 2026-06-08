@@ -138,6 +138,10 @@ format-check:
     @echo "Checking code format..."
     @devbox run format-check
 
+man:
+    @echo "Generating man pages..."
+    @devbox run man
+
 # Memory and task management targets (NEW)
 doc-search:
     @echo "🔍 Searching documentation and memory..."
@@ -225,6 +229,7 @@ release-internal:
     just test-internal
     just typecheck-internal
     just build-release-internal
+    just man-internal
     echo "✅ Release complete! Binary available at target/release/proximityd"
 
 build-release-internal:
@@ -271,6 +276,20 @@ format-internal:
 format-check-internal:
     # Check code format
     cargo fmt -- --check
+
+man-internal:
+    # Generate man pages to target/man directory
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p target/man
+    cargo run --bin proximityd -- man > target/man/proximityd.1
+    cargo run --bin proximityd -- man status > target/man/proximityd-status.1
+    cargo run --bin proximityd -- man export > target/man/proximityd-export.1
+    cargo run --bin proximityd -- man discover > target/man/proximityd-discover.1
+    cargo run --bin proximityd -- man install > target/man/proximityd-install.1
+    cargo run --bin proximityd -- man uninstall > target/man/proximityd-uninstall.1
+    cargo run --bin proximityd -- man completion > target/man/proximityd-completion.1
+    echo "Man pages generated in target/man/"
 
 doc-internal:
     # Generate documentation

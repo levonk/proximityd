@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 5
 parallel_id: 1
 branch: "feature/current/cli-standards/story-05-001-man-pages"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,24 +27,24 @@ Generate traditional Unix man pages for proximityd using clap_mangen. Man pages 
 
 ## Sub-Tasks
 
-- [ ] Add clap_mangen dependency to Cargo.toml
-- [ ] Create `src/cli/man.rs` module
-- [ ] Implement man page generation function:
+- [x] Add clap_mangen dependency to Cargo.toml
+- [x] Create `src/cli/man.rs` module
+- [x] Implement man page generation function:
   - Generate man page for main proximityd command
   - Generate man pages for subcommands: status, export, discover, install, completion
   - Use clap_mangen to generate from CLI definition
-- [ ] Add `man` subcommand to CLI: `proximityd man [command]`
-- [ ] Add `--man` flag to display man page content to stdout
-- [ ] Implement man page installation in install functionality (story 02-001):
+- [x] Add `man` subcommand to CLI: `proximityd man [command]`
+- [x] Add `--man` flag to display man page content to stdout
+- [x] Implement man page installation in install functionality (story 02-001):
   - Install to `/usr/local/share/man/man1/`
   - Handle permission errors gracefully
   - Skip installation if directory not writable
-- [ ] Add man page generation to build process:
+- [x] Add man page generation to build process:
   - Add `man` target to justfile
   - Generate man pages during release build
-- [ ] Add tests for man page generation
-- [ ] Verify generated man pages are valid
-- [ ] Test man page display with `man proximityd`
+- [x] Add tests for man page generation
+- [x] Verify generated man pages are valid
+- [x] Test man page display with `man proximityd`
 
 ## Relevant Files
 
@@ -58,15 +58,15 @@ Generate traditional Unix man pages for proximityd using clap_mangen. Man pages 
 
 ## Acceptance Criteria
 
-- [ ] `proximityd man` generates man page for main command
-- [ ] `proximityd man status` generates man page for status command
-- [ ] `proximityd man export` generates man page for export command
-- [ ] `proximityd man discover` generates man page for discover command
-- [ ] `proximityd --man` displays man page content to stdout
-- [ ] Generated man pages are valid roff format
-- [ ] Man pages can be installed to system directory
-- [ ] Man pages display correctly with `man proximityd`
-- [ ] All man page generation has tests
+- [x] `proximityd man` generates man page for main command
+- [x] `proximityd man status` generates man page for status command
+- [x] `proximityd man export` generates man page for export command
+- [x] `proximityd man discover` generates man page for discover command
+- [x] `proximityd --man` displays man page content to stdout
+- [x] Generated man pages are valid roff format
+- [x] Man pages can be installed to system directory
+- [x] Man pages display correctly with `man proximityd`
+- [x] All man page generation has tests
 
 ## Test Plan
 

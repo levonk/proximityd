@@ -1,11 +1,12 @@
 use anyhow::{Context, Result};
+use clap::Command;
 use directories::ProjectDirs;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 
 /// Install proximityd: generate shell completions and initialize config files
-pub fn run_install(_force: bool) -> Result<()> {
+pub fn run_install(_force: bool, cmd: &Command) -> Result<()> {
     println!("Installing proximityd...");
     println!();
 
@@ -70,6 +71,16 @@ name = "Example Person"
 
     // Generate shell completions
     generate_completions()?;
+
+    // Install man pages
+    println!("Installing man pages...");
+    match crate::cli::install_man_pages(cmd) {
+        Ok(()) => println!("Man pages installed successfully"),
+        Err(e) => {
+            println!("Warning: Failed to install man pages: {}", e);
+            println!("Man pages will still be available via 'proximityd man' command");
+        }
+    }
 
     println!();
     println!("Installation complete!");

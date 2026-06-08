@@ -33,13 +33,13 @@ This index summarizes all stories for implementing CLI standards compliance and 
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
 | 04-001 | Add config section editors to TUI | feature/current/cli-standards/story-04-001-tui-config-editors | 03-001 | Parallel-safe: true | src/cli/tui | [x] Done |
 | 04-002 | Add party/device/identifier management in TUI | feature/current/cli-standards/story-04-002-tui-party-management | 03-001 | Parallel-safe: true | src/cli/tui | [x] Done |
-| 04-003 | Add notifier testing in TUI | feature/current/cli-standards/story-04-003-tui-notifier-testing | 03-001 | Parallel-safe: true | src/cli/tui | [~] In-Progress |
+| 04-003 | Add notifier testing in TUI | feature/current/cli-standards/story-04-003-tui-notifier-testing | 03-001 | Parallel-safe: true | src/cli/tui | [x] Done |
 
 ### Phase 05: Man Pages and Pager Integration
 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
-| 05-001 | Generate man pages using clap_mangen | feature/current/cli-standards/story-05-001-man-pages | None | Parallel-safe: true | src/cli/man |
+| 05-001 | Generate man pages using clap_mangen | feature/current/cli-standards/story-05-001-man-pages | None | Parallel-safe: true | src/cli/man | [~] In-Progress |
 | 05-002 | Implement pager integration | feature/current/cli-standards/story-05-002-pager-integration | None | Parallel-safe: true | src/main.rs |
 
 ### Phase 06: Remaining CLI Standards
