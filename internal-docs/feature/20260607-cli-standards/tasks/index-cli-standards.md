@@ -33,7 +33,7 @@ This index summarizes all stories for implementing CLI standards compliance and 
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
 | 04-001 | Add config section editors to TUI | feature/current/cli-standards/story-04-001-tui-config-editors | 03-001 | Parallel-safe: true | src/cli/tui | [x] Done |
 | 04-002 | Add party/device/identifier management in TUI | feature/current/cli-standards/story-04-002-tui-party-management | 03-001 | Parallel-safe: true | src/cli/tui | [x] Done |
-| 04-003 | Add notifier testing in TUI | feature/current/cli-standards/story-04-003-tui-notifier-testing | 03-001 | Parallel-safe: true | src/cli/tui |
+| 04-003 | Add notifier testing in TUI | feature/current/cli-standards/story-04-003-tui-notifier-testing | 03-001 | Parallel-safe: true | src/cli/tui | [~] In-Progress |
 
 ### Phase 05: Man Pages and Pager Integration
 

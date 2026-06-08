@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 4
 parallel_id: 3
 branch: "feature/current/cli-standards/story-04-003-tui-notifier-testing"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["03-001"]
@@ -27,36 +27,36 @@ Implement TUI screen for testing notifier configurations. Users should be able t
 
 ## Sub-Tasks
 
-- [ ] Implement notifier test screen:
+- [x] Implement notifier test screen:
   - List all configured notifiers
   - Select notifier to test
   - Send test notification button
-- [ ] Implement test notification builder:
+- [x] Implement test notification builder:
   - Create sample presence event (enter/exit)
   - Include sample party name, device name, location
   - Format notification according to notifier type
-- [ ] Implement Discord test notification:
+- [x] Implement Discord test notification:
   - Send test message to configured webhook
   - Display success/error status
   - Show response/error details
-- [ ] Implement Slack test notification:
+- [x] Implement Slack test notification:
   - Send test message to configured webhook
   - Display success/error status
   - Show response/error details
-- [ ] Implement Webhook test notification:
+- [x] Implement Webhook test notification:
   - Send test POST request to configured URL
   - Display success/error status
   - Show response/error details
-- [ ] Implement MQTT test notification:
+- [x] Implement MQTT test notification:
   - Publish test message to configured topic
   - Display success/error status
   - Show connection/publish errors
-- [ ] Implement test result display:
+- [x] Implement test result display:
   - Success message with timestamp
   - Error message with details
   - Retry button for failed tests
-- [ ] Add loading indicator during notification sending
-- [ ] Add tests for notifier testing functionality
+- [x] Add loading indicator during notification sending
+- [x] Add tests for notifier testing functionality
 
 ## Relevant Files
 
@@ -67,15 +67,15 @@ Implement TUI screen for testing notifier configurations. Users should be able t
 
 ## Acceptance Criteria
 
-- [ ] Notifier test screen displays all configured notifiers
-- [ ] Discord test notifications send successfully
-- [ ] Slack test notifications send successfully
-- [ ] Webhook test notifications send successfully
-- [ ] MQTT test notifications send successfully
-- [ ] Test results display clearly (success or error with details)
-- [ ] Failed tests can be retried
-- [ ] Loading indicator shows during sending
-- [ ] All notifier test functionality has tests
+- [x] Notifier test screen displays all configured notifiers
+- [x] Discord test notifications send successfully
+- [x] Slack test notifications send successfully
+- [x] Webhook test notifications send successfully
+- [x] MQTT test notifications send successfully
+- [x] Test results display clearly (success or error with details)
+- [x] Failed tests can be retried
+- [x] Loading indicator shows during sending
+- [x] All notifier test functionality has tests
 
 ## Test Plan
 

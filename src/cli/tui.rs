@@ -1,5 +1,6 @@
 pub mod config;
 pub mod presence;
+pub mod notifier;
 
 use anyhow::{Context, Result};
 use atty;
@@ -36,6 +37,7 @@ pub fn is_tui_supported() -> bool {
 
 use config::{FormEditor, create_general_editor, create_privacy_editor, create_scanner_editor, create_detection_editor, create_discovery_editor, create_notifier_editor, apply_general_settings, apply_privacy_settings, apply_scanner_settings, apply_detection_settings, apply_discovery_settings, apply_notifier_settings};
 use presence::{PresenceManager, PresenceEditor, PartyEditor, DeviceEditor, IdentifierEditor};
+use notifier::NotifierTestManager;
 use crate::config::app::AppConfig;
 use crate::config::loader;
 use crate::config::presence::Location;
@@ -60,6 +62,8 @@ pub struct TuiApp {
     config: AppConfig,
     /// Presence manager for party/device/identifier management
     presence_manager: Option<PresenceManager>,
+    /// Notifier test manager for testing notifications
+    notifier_test_manager: Option<NotifierTestManager>,
 }
 
 /// Represents different screens in the TUI
@@ -147,6 +151,7 @@ impl TuiApp {
             selected_notifier: None,
             config: AppConfig::default(),
             presence_manager: None,
+            notifier_test_manager: None,
         }
     }
 
@@ -186,6 +191,7 @@ impl TuiApp {
             Screen::DeviceDetail => self.handle_device_detail_key(key),
             Screen::IdentifierList => self.handle_identifier_list_key(key),
             Screen::IdentifierEdit => self.handle_identifier_edit_key(key),
+            Screen::Test => self.handle_test_key(key),
             Screen::Help => {
                 if key == KeyCode::Esc {
                     self.pop_screen();
@@ -654,6 +660,56 @@ impl TuiApp {
         }
     }
 
+    /// Handle keys for the test notifier screen
+    fn handle_test_key(&mut self, key: KeyCode) {
+        // Initialize test manager if not exists
+        if self.notifier_test_manager.is_none() {
+            self.notifier_test_manager = Some(NotifierTestManager::new(self.config.clone()));
+        }
+
+        if let Some(ref mut manager) = self.notifier_test_manager {
+            let notifier_count = manager.notifier_count();
+
+            match key {
+                KeyCode::Up => {
+                    if self.selected > 0 {
+                        self.selected -= 1;
+                        manager.set_selected(self.selected);
+                    }
+                }
+                KeyCode::Down => {
+                    if notifier_count > 0 && self.selected < notifier_count - 1 {
+                        self.selected += 1;
+                        manager.set_selected(self.selected);
+                    }
+                }
+                KeyCode::Enter => {
+                    if notifier_count > 0 {
+                        if let Err(e) = manager.send_test_notification(self.selected) {
+                            eprintln!("Failed to send test notification: {}", e);
+                        }
+                    }
+                }
+                KeyCode::Char('r') => {
+                    // Retry the selected test
+                    if notifier_count > 0 {
+                        if let Err(e) = manager.send_test_notification(self.selected) {
+                            eprintln!("Failed to send test notification: {}", e);
+                        }
+                    }
+                }
+                KeyCode::Char('c') => {
+                    // Clear all results
+                    manager.clear_results();
+                }
+                KeyCode::Esc => {
+                    self.pop_screen();
+                }
+                _ => {}
+            }
+        }
+    }
+
     /// Handle keys for config editor screens
     fn handle_config_editor_key(&mut self, key: KeyCode) {
         // Handle Ctrl+S for save
@@ -821,6 +877,7 @@ impl TuiApp {
             Screen::DeviceDetail => self.draw_device_detail(f),
             Screen::IdentifierList => self.draw_identifier_list(f),
             Screen::IdentifierEdit => self.draw_identifier_edit(f),
+            Screen::Test => self.draw_test(f),
             Screen::Help => self.draw_help(f),
             _ => self.draw_placeholder(f, screen),
         }
@@ -1266,6 +1323,115 @@ impl TuiApp {
         }
         self.draw_placeholder(f, self.current_screen());
     }
+
+    /// Draw the test notifier screen
+    fn draw_test(&self, f: &mut Frame) {
+        if let Some(ref manager) = self.notifier_test_manager {
+            let notifier_names = manager.notifier_names();
+            let notifier_count = notifier_names.len();
+
+            if notifier_count == 0 {
+                let text = vec![
+                    Line::from("No notifiers configured."),
+                    Line::from(""),
+                    Line::from("Add notifiers in the Config menu first."),
+                    Line::from(""),
+                    Line::from("Press Esc to return."),
+                ];
+
+                let paragraph = Paragraph::new(text)
+                    .block(Block::default().borders(Borders::ALL).title(Screen::Test.title()))
+                    .wrap(Wrap { trim: true })
+                    .alignment(Alignment::Center);
+
+                f.render_widget(paragraph, f.size());
+                return;
+            }
+
+            // Create list items with test results
+            let items: Vec<ListItem> = notifier_names.iter().enumerate().map(|(i, name)| {
+                let test_result = manager.test_result(i);
+                let status = match test_result {
+                    Some(result) => {
+                        if result.is_loading() {
+                            "⏳ Loading..."
+                        } else if result.is_success() {
+                            "✓ Success"
+                        } else {
+                            "✗ Failed"
+                        }
+                    }
+                    None => "  Not tested"
+                };
+                ListItem::new(format!("{} - {}", name, status))
+            }).collect();
+
+            let list_items: Vec<ListItem> = items
+                .iter()
+                .enumerate()
+                .map(|(i, item)| {
+                    let style = if i == self.selected {
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default()
+                    };
+                    item.clone().style(style)
+                })
+                .collect();
+
+            let list = List::new(list_items)
+                .block(Block::default().borders(Borders::ALL).title(Screen::Test.title()))
+                .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(3)].as_ref())
+                .split(f.size());
+
+            let help_text = vec![
+                Line::from("Enter: Send test  R: Retry  C: Clear results  Esc: Back"),
+            ];
+
+            let help = Paragraph::new(help_text)
+                .style(Style::default().fg(Color::Cyan))
+                .alignment(Alignment::Center);
+
+            // Show test result details if available
+            let details_text = if let Some(result) = manager.test_result(self.selected) {
+                let timestamp = result.timestamp();
+                let message = result.display_message();
+                let details = result.error_details().unwrap_or_else(|| "".to_string());
+                
+                vec![
+                    Line::from(format!("Time: {}", timestamp)),
+                    Line::from(format!("Status: {}", message)),
+                    if !details.is_empty() {
+                        Line::from(format!("Details: {}", details))
+                    } else {
+                        Line::from("")
+                    },
+                ]
+            } else {
+                vec![
+                    Line::from("Select a notifier and press Enter to test."),
+                ]
+            };
+
+            let details = Paragraph::new(details_text)
+                .style(Style::default().fg(Color::Yellow))
+                .wrap(Wrap { trim: true });
+
+            f.render_widget(help, chunks[0]);
+            f.render_widget(list, chunks[1]);
+            f.render_widget(details, chunks[2]);
+            return;
+        }
+
+        self.draw_placeholder(f, self.current_screen());
+    }
 }
 
 impl Default for TuiApp {
@@ -1379,6 +1545,91 @@ mod tests {
         assert_eq!(Screen::Notifiers.title(), "Notifiers");
         assert_eq!(Screen::Test.title(), "Test Notifiers");
         assert_eq!(Screen::Help.title(), "Keyboard Shortcuts");
+    }
+
+    #[test]
+    fn test_test_screen_navigation() {
+        let mut app = TuiApp::new();
+        app.push_screen(Screen::Test);
+        assert_eq!(app.current_screen(), Screen::Test);
+        
+        // Initialize test manager
+        app.handle_key(KeyCode::Esc);
+        assert_eq!(app.current_screen(), Screen::MainMenu);
+    }
+
+    #[test]
+    fn test_notifier_test_manager_initialization() {
+        let config = AppConfig::default();
+        let manager = NotifierTestManager::new(config);
+        assert_eq!(manager.notifier_count(), 0);
+        assert_eq!(manager.selected(), 0);
+    }
+
+    #[test]
+    fn test_notifier_test_manager_with_config() {
+        let mut config = AppConfig::default();
+        config.notifiers.push(crate::config::app::NotifierConfig {
+            kind: "discord".to_string(),
+            webhook_url: "https://example.com/webhook".to_string(),
+            url: String::new(),
+            method: String::new(),
+            payload_template: String::new(),
+            broker: String::new(),
+            port: 1883,
+            topic: String::new(),
+            token: None,
+            channel_id: None,
+            include_timestamp: false,
+            include_mac: false,
+        });
+        
+        let manager = NotifierTestManager::new(config);
+        assert_eq!(manager.notifier_count(), 1);
+        assert!(manager.notifier_names()[0].contains("discord"));
+    }
+
+    #[test]
+    fn test_notifier_test_manager_selection() {
+        let mut config = AppConfig::default();
+        config.notifiers.push(crate::config::app::NotifierConfig {
+            kind: "discord".to_string(),
+            webhook_url: "https://example.com/webhook".to_string(),
+            url: String::new(),
+            method: String::new(),
+            payload_template: String::new(),
+            broker: String::new(),
+            port: 1883,
+            topic: String::new(),
+            token: None,
+            channel_id: None,
+            include_timestamp: false,
+            include_mac: false,
+        });
+        config.notifiers.push(crate::config::app::NotifierConfig {
+            kind: "slack".to_string(),
+            webhook_url: "https://example.com/webhook".to_string(),
+            url: String::new(),
+            method: String::new(),
+            payload_template: String::new(),
+            broker: String::new(),
+            port: 1883,
+            topic: String::new(),
+            token: None,
+            channel_id: None,
+            include_timestamp: false,
+            include_mac: false,
+        });
+        
+        let mut manager = NotifierTestManager::new(config);
+        assert_eq!(manager.selected(), 0);
+        
+        manager.set_selected(1);
+        assert_eq!(manager.selected(), 1);
+        
+        // Invalid selection should not change
+        manager.set_selected(5);
+        assert_eq!(manager.selected(), 1);
     }
 
     #[test]
