@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 4
 parallel_id: 1
 branch: "feature/current/cli-standards/story-04-001-tui-config-editors"
-status: "in_progress"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["03-001"]

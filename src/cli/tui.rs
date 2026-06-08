@@ -1,4 +1,5 @@
 pub mod config;
+pub mod presence;
 
 use anyhow::{Context, Result};
 use atty;
@@ -34,8 +35,10 @@ pub fn is_tui_supported() -> bool {
 }
 
 use config::{FormEditor, create_general_editor, create_privacy_editor, create_scanner_editor, create_detection_editor, create_discovery_editor, create_notifier_editor, apply_general_settings, apply_privacy_settings, apply_scanner_settings, apply_detection_settings, apply_discovery_settings, apply_notifier_settings};
+use presence::{PresenceManager, PresenceEditor, PartyEditor, DeviceEditor, IdentifierEditor};
 use crate::config::app::AppConfig;
 use crate::config::loader;
+use crate::config::presence::Location;
 use std::fs;
 use toml;
 
@@ -55,6 +58,8 @@ pub struct TuiApp {
     selected_notifier: Option<usize>,
     /// Loaded config
     config: AppConfig,
+    /// Presence manager for party/device/identifier management
+    presence_manager: Option<PresenceManager>,
 }
 
 /// Represents different screens in the TUI
@@ -69,7 +74,11 @@ pub enum Screen {
     ConfigDiscovery,
     ConfigNotifier,
     Parties,
-    Devices,
+    PartyDetail,
+    DeviceList,
+    DeviceDetail,
+    IdentifierList,
+    IdentifierEdit,
     Notifiers,
     Test,
     Help,
@@ -88,7 +97,11 @@ impl Screen {
             Screen::ConfigDiscovery => "Discovery Settings",
             Screen::ConfigNotifier => "Notifier Configuration",
             Screen::Parties => "Parties",
-            Screen::Devices => "Devices",
+            Screen::PartyDetail => "Party Details",
+            Screen::DeviceList => "Devices",
+            Screen::DeviceDetail => "Device Details",
+            Screen::IdentifierList => "Identifiers",
+            Screen::IdentifierEdit => "Edit Identifier",
             Screen::Notifiers => "Notifiers",
             Screen::Test => "Test Notifiers",
             Screen::Help => "Keyboard Shortcuts",
@@ -133,6 +146,7 @@ impl TuiApp {
             selected_scanner: None,
             selected_notifier: None,
             config: AppConfig::default(),
+            presence_manager: None,
         }
     }
 
@@ -166,6 +180,12 @@ impl TuiApp {
             Screen::ConfigDetection | Screen::ConfigDiscovery | Screen::ConfigNotifier => {
                 self.handle_config_editor_key(key)
             }
+            Screen::Parties => self.handle_parties_key(key),
+            Screen::PartyDetail => self.handle_party_detail_key(key),
+            Screen::DeviceList => self.handle_device_list_key(key),
+            Screen::DeviceDetail => self.handle_device_detail_key(key),
+            Screen::IdentifierList => self.handle_identifier_list_key(key),
+            Screen::IdentifierEdit => self.handle_identifier_edit_key(key),
             Screen::Help => {
                 if key == KeyCode::Esc {
                     self.pop_screen();
@@ -199,7 +219,6 @@ impl TuiApp {
                 match items[self.selected] {
                     "Config" => self.push_screen(Screen::Config),
                     "Parties" => self.push_screen(Screen::Parties),
-                    "Devices" => self.push_screen(Screen::Devices),
                     "Notifiers" => self.push_screen(Screen::Notifiers),
                     "Test" => self.push_screen(Screen::Test),
                     "Help" => self.push_screen(Screen::Help),
@@ -268,6 +287,370 @@ impl TuiApp {
             }
             KeyCode::Esc => self.pop_screen(),
             _ => {}
+        }
+    }
+
+    /// Handle keys for the parties screen
+    fn handle_parties_key(&mut self, key: KeyCode) {
+        // Initialize presence manager if needed
+        if self.presence_manager.is_none() {
+            if let Ok(manager) = PresenceManager::new() {
+                self.presence_manager = Some(manager);
+            }
+        }
+
+        if let Some(ref mut manager) = self.presence_manager {
+            let party_count = manager.party_count();
+
+            match key {
+                KeyCode::Up => {
+                    if self.selected > 0 {
+                        self.selected -= 1;
+                    }
+                }
+                KeyCode::Down => {
+                    if party_count > 0 && self.selected < party_count - 1 {
+                        self.selected += 1;
+                    }
+                }
+                KeyCode::Enter => {
+                    if party_count > 0 {
+                        manager.selected_party = Some(self.selected);
+                        self.push_screen(Screen::PartyDetail);
+                    }
+                }
+                KeyCode::Char('a') => {
+                    manager.add_party();
+                    self.selected = party_count;
+                }
+                KeyCode::Char('d') => {
+                    if party_count > 0 {
+                        manager.selected_party = Some(self.selected);
+                        // For now, just delete without confirmation (can be enhanced later)
+                        manager.delete_party();
+                        if self.selected >= party_count - 1 && self.selected > 0 {
+                            self.selected -= 1;
+                        }
+                    }
+                }
+                KeyCode::Char('s') => {
+                    if let Err(e) = manager.save() {
+                        eprintln!("Failed to save: {}", e);
+                    }
+                }
+                KeyCode::Esc => self.pop_screen(),
+                _ => {}
+            }
+        }
+    }
+
+    /// Handle keys for the party detail screen
+    fn handle_party_detail_key(&mut self, key: KeyCode) {
+        if let Some(ref mut manager) = self.presence_manager {
+            // Check if editor is active
+            if manager.editor.is_some() {
+                let should_save = if let Some(ref mut editor) = manager.editor {
+                    if let PresenceEditor::Party(ref mut party_editor) = editor {
+                        match key {
+                            KeyCode::Char('s') => {
+                                // Extract editor data before updating
+                                let name = party_editor.name.clone();
+                                let location = party_editor.location.clone();
+                                Some((name, location))
+                            }
+                            KeyCode::Esc => {
+                                manager.editor = None;
+                                None
+                            }
+                            _ => {
+                                party_editor.handle_key(key);
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                if let Some((name, location)) = should_save {
+                    if let Err(e) = manager.update_selected_party(|p| {
+                        p.name = name;
+                        if location != Location::default() {
+                            p.location = Some(location);
+                        } else {
+                            p.location = None;
+                        }
+                    }) {
+                        eprintln!("Failed to update party: {}", e);
+                    } else if let Err(e) = manager.save() {
+                        eprintln!("Failed to save: {}", e);
+                    } else {
+                        manager.editor = None;
+                    }
+                }
+                return;
+            }
+
+            // Normal navigation
+            match key {
+                KeyCode::Enter => {
+                    self.push_screen(Screen::DeviceList);
+                }
+                KeyCode::Char('e') => {
+                    // Create party editor
+                    if let Some(party) = manager.get_selected_party() {
+                        manager.editor = Some(PresenceEditor::Party(PartyEditor::from_party(party)));
+                    }
+                }
+                KeyCode::Char('d') => {
+                    manager.delete_party();
+                    self.pop_screen();
+                }
+                KeyCode::Esc => {
+                    manager.selected_party = None;
+                    self.pop_screen();
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Handle keys for the device list screen
+    fn handle_device_list_key(&mut self, key: KeyCode) {
+        if let Some(ref mut manager) = self.presence_manager {
+            let device_count = manager.device_count();
+
+            match key {
+                KeyCode::Up => {
+                    if self.selected > 0 {
+                        self.selected -= 1;
+                    }
+                }
+                KeyCode::Down => {
+                    if device_count > 0 && self.selected < device_count - 1 {
+                        self.selected += 1;
+                    }
+                }
+                KeyCode::Enter => {
+                    if device_count > 0 {
+                        manager.selected_device = Some(self.selected);
+                        self.push_screen(Screen::DeviceDetail);
+                    }
+                }
+                KeyCode::Char('a') => {
+                    manager.add_device();
+                    self.selected = device_count;
+                }
+                KeyCode::Char('d') => {
+                    if device_count > 0 {
+                        manager.selected_device = Some(self.selected);
+                        manager.delete_device();
+                        if self.selected >= device_count - 1 && self.selected > 0 {
+                            self.selected -= 1;
+                        }
+                    }
+                }
+                KeyCode::Esc => {
+                    manager.selected_device = None;
+                    self.pop_screen();
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Handle keys for the device detail screen
+    fn handle_device_detail_key(&mut self, key: KeyCode) {
+        if let Some(ref mut manager) = self.presence_manager {
+            // Check if editor is active
+            if manager.editor.is_some() {
+                let should_save = if let Some(ref mut editor) = manager.editor {
+                    if let PresenceEditor::Device(ref mut device_editor) = editor {
+                        match key {
+                            KeyCode::Char('s') => {
+                                // Extract editor data before updating
+                                let name = device_editor.name.clone();
+                                let location = device_editor.location.clone();
+                                Some((name, location))
+                            }
+                            KeyCode::Esc => {
+                                manager.editor = None;
+                                None
+                            }
+                            _ => {
+                                device_editor.handle_key(key);
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                if let Some((name, location)) = should_save {
+                    if let Err(e) = manager.update_selected_device(|d| {
+                        d.name = name;
+                        if location != Location::default() {
+                            d.location = Some(location);
+                        } else {
+                            d.location = None;
+                        }
+                    }) {
+                        eprintln!("Failed to update device: {}", e);
+                    } else if let Err(e) = manager.save() {
+                        eprintln!("Failed to save: {}", e);
+                    } else {
+                        manager.editor = None;
+                    }
+                }
+                return;
+            }
+
+            // Normal navigation
+            match key {
+                KeyCode::Enter => {
+                    self.push_screen(Screen::IdentifierList);
+                }
+                KeyCode::Char('e') => {
+                    // Create device editor
+                    if let Some(device) = manager.get_selected_device() {
+                        manager.editor = Some(PresenceEditor::Device(DeviceEditor::from_device(device)));
+                    }
+                }
+                KeyCode::Char('d') => {
+                    manager.delete_device();
+                    self.pop_screen();
+                }
+                KeyCode::Esc => {
+                    manager.selected_device = None;
+                    self.pop_screen();
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Handle keys for the identifier list screen
+    fn handle_identifier_list_key(&mut self, key: KeyCode) {
+        if let Some(ref mut manager) = self.presence_manager {
+            let identifier_count = manager.identifier_count();
+
+            match key {
+                KeyCode::Up => {
+                    if self.selected > 0 {
+                        self.selected -= 1;
+                    }
+                }
+                KeyCode::Down => {
+                    if identifier_count > 0 && self.selected < identifier_count - 1 {
+                        self.selected += 1;
+                    }
+                }
+                KeyCode::Enter => {
+                    if identifier_count > 0 {
+                        manager.selected_identifier = Some(self.selected);
+                        self.push_screen(Screen::IdentifierEdit);
+                    }
+                }
+                KeyCode::Char('a') => {
+                    manager.add_identifier();
+                    self.selected = identifier_count;
+                }
+                KeyCode::Char('e') => {
+                    if identifier_count > 0 {
+                        manager.selected_identifier = Some(self.selected);
+                        self.push_screen(Screen::IdentifierEdit);
+                    }
+                }
+                KeyCode::Char('d') => {
+                    if identifier_count > 0 {
+                        manager.selected_identifier = Some(self.selected);
+                        manager.delete_identifier();
+                        if self.selected >= identifier_count - 1 && self.selected > 0 {
+                            self.selected -= 1;
+                        }
+                    }
+                }
+                KeyCode::Esc => {
+                    manager.selected_identifier = None;
+                    self.pop_screen();
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Handle keys for the identifier edit screen
+    fn handle_identifier_edit_key(&mut self, key: KeyCode) {
+        let (should_save, should_pop) = if let Some(ref mut manager) = self.presence_manager {
+            // Check if editor is active
+            if manager.editor.is_some() {
+                if let Some(ref mut editor) = manager.editor {
+                    if let PresenceEditor::Identifier(ref mut id_editor) = editor {
+                        match key {
+                            KeyCode::Char('s') => {
+                                if id_editor.validate().is_ok() {
+                                    // Extract editor data before updating
+                                    let name = id_editor.name.clone();
+                                    let id_type = id_editor.id_type.clone();
+                                    let value = id_editor.value.clone();
+                                    (Some((name, id_type, value)), false)
+                                } else {
+                                    (None, false)
+                                }
+                            }
+                            KeyCode::Esc => {
+                                manager.editor = None;
+                                (None, true)
+                            }
+                            _ => {
+                                id_editor.handle_key(key);
+                                (None, false)
+                            }
+                        }
+                    } else {
+                        (None, false)
+                    }
+                } else {
+                    (None, false)
+                }
+            } else {
+                // Create editor if not exists
+                if let Some(identifier) = manager.get_selected_identifier() {
+                    manager.editor = Some(PresenceEditor::Identifier(
+                        IdentifierEditor::from_identifier(identifier)
+                    ));
+                }
+                (None, false)
+            }
+        } else {
+            (None, false)
+        };
+
+        if should_pop {
+            self.pop_screen();
+            return;
+        }
+
+        if let Some((name, id_type, value)) = should_save {
+            if let Some(ref mut manager) = self.presence_manager {
+                if let Err(e) = manager.update_selected_identifier(|i| {
+                    i.name = name;
+                    i.id_type = id_type;
+                    i.value = value;
+                }) {
+                    eprintln!("Failed to update identifier: {}", e);
+                } else if let Err(e) = manager.save() {
+                    eprintln!("Failed to save: {}", e);
+                } else {
+                    manager.editor = None;
+                    self.pop_screen();
+                }
+            }
         }
     }
 
@@ -432,6 +815,12 @@ impl TuiApp {
             Screen::ConfigDetection | Screen::ConfigDiscovery | Screen::ConfigNotifier => {
                 self.draw_config_editor(f)
             }
+            Screen::Parties => self.draw_parties(f),
+            Screen::PartyDetail => self.draw_party_detail(f),
+            Screen::DeviceList => self.draw_device_list(f),
+            Screen::DeviceDetail => self.draw_device_detail(f),
+            Screen::IdentifierList => self.draw_identifier_list(f),
+            Screen::IdentifierEdit => self.draw_identifier_edit(f),
             Screen::Help => self.draw_help(f),
             _ => self.draw_placeholder(f, screen),
         }
@@ -558,6 +947,325 @@ impl TuiApp {
 
         f.render_widget(paragraph, f.size());
     }
+
+    /// Draw the parties screen
+    fn draw_parties(&self, f: &mut Frame) {
+        let items = if let Some(ref manager) = self.presence_manager {
+            manager.config.parties.iter().map(|party| {
+                let device_count = party.devices.len();
+                ListItem::new(format!("{} ({} devices)", party.name, device_count))
+            }).collect()
+        } else {
+            vec![ListItem::new("Loading...")]
+        };
+
+        let list_items: Vec<ListItem> = items
+            .iter()
+            .enumerate()
+            .map(|(i, item)| {
+                let style = if i == self.selected {
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default()
+                };
+                item.clone().style(style)
+            })
+            .collect();
+
+        let list = List::new(list_items)
+            .block(Block::default().borders(Borders::ALL).title(Screen::Parties.title()))
+            .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(2)
+            .constraints([Constraint::Length(1), Constraint::Min(0)].as_ref())
+            .split(f.size());
+
+        let help_text = vec![
+            Line::from("A: Add  E: Edit  D: Delete  S: Save  Enter: Edit  Esc: Back"),
+        ];
+
+        let help = Paragraph::new(help_text)
+            .style(Style::default().fg(Color::Cyan))
+            .alignment(Alignment::Center);
+
+        f.render_widget(help, chunks[0]);
+        f.render_widget(list, chunks[1]);
+    }
+
+    /// Draw the party detail screen
+    fn draw_party_detail(&self, f: &mut Frame) {
+        if let Some(ref manager) = self.presence_manager {
+            // Show editor if active
+            if let Some(ref editor) = manager.editor {
+                if let PresenceEditor::Party(ref party_editor) = editor {
+                    let text = vec![
+                        Line::from(format!("Name: {}", party_editor.name)),
+                        Line::from(format!("Building: {}", party_editor.location.building.as_deref().unwrap_or(""))),
+                        Line::from(format!("Floor: {}", party_editor.location.floor.map(|f| f.to_string()).unwrap_or("".to_string()))),
+                        Line::from(format!("Room: {}", party_editor.location.room.as_deref().unwrap_or(""))),
+                        Line::from(format!("Zone: {}", party_editor.location.zone.as_deref().unwrap_or(""))),
+                        Line::from(""),
+                        Line::from("↑/↓: Navigate field  Backspace: Delete  S: Save  Esc: Cancel"),
+                    ];
+
+                    let paragraph = Paragraph::new(text)
+                        .block(Block::default().borders(Borders::ALL).title("Edit Party"))
+                        .wrap(Wrap { trim: true });
+
+                    f.render_widget(paragraph, f.size());
+                    return;
+                }
+            }
+
+            // Show normal view
+            if let Some(party_idx) = manager.selected_party {
+                if let Some(party) = manager.config.parties.get(party_idx) {
+                    let text = vec![
+                        Line::from(format!("Party: {}", party.name)),
+                        Line::from(""),
+                        Line::from(format!("Devices: {}", party.devices.len())),
+                        Line::from(""),
+                        if let Some(ref loc) = party.location {
+                            Line::from(format!("Location: {} (Floor: {}, Room: {}, Zone: {})",
+                                loc.building.as_deref().unwrap_or("N/A"),
+                                loc.floor.map(|f| f.to_string()).unwrap_or("N/A".to_string()),
+                                loc.room.as_deref().unwrap_or("N/A"),
+                                loc.zone.as_deref().unwrap_or("N/A")))
+                        } else {
+                            Line::from("Location: Not set")
+                        },
+                        Line::from(""),
+                        Line::from("Enter: View Devices  E: Edit  D: Delete  Esc: Back"),
+                    ];
+
+                    let paragraph = Paragraph::new(text)
+                        .block(Block::default().borders(Borders::ALL).title(Screen::PartyDetail.title()))
+                        .wrap(Wrap { trim: true });
+
+                    f.render_widget(paragraph, f.size());
+                    return;
+                }
+            }
+        }
+        self.draw_placeholder(f, self.current_screen());
+    }
+
+    /// Draw the device list screen
+    fn draw_device_list(&self, f: &mut Frame) {
+        if let Some(ref manager) = self.presence_manager {
+            if let Some(party_idx) = manager.selected_party {
+                if let Some(party) = manager.config.parties.get(party_idx) {
+                    let items: Vec<ListItem> = party.devices.iter().map(|device| {
+                        let identifier_count = device.identifiers.len();
+                        ListItem::new(format!("{} ({} identifiers)", device.name, identifier_count))
+                    }).collect();
+
+                    let list_items: Vec<ListItem> = items
+                        .iter()
+                        .enumerate()
+                        .map(|(i, item)| {
+                            let style = if i == self.selected {
+                                Style::default()
+                                    .fg(Color::Cyan)
+                                    .add_modifier(Modifier::BOLD)
+                            } else {
+                                Style::default()
+                            };
+                            item.clone().style(style)
+                        })
+                        .collect();
+
+                    let list = List::new(list_items)
+                        .block(Block::default().borders(Borders::ALL).title(Screen::DeviceList.title()))
+                        .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+
+                    let chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .margin(2)
+                        .constraints([Constraint::Length(1), Constraint::Min(0)].as_ref())
+                        .split(f.size());
+
+                    let help_text = vec![
+                        Line::from("A: Add  E: Edit  D: Delete  Enter: Edit  Esc: Back"),
+                    ];
+
+                    let help = Paragraph::new(help_text)
+                        .style(Style::default().fg(Color::Cyan))
+                        .alignment(Alignment::Center);
+
+                    f.render_widget(help, chunks[0]);
+                    f.render_widget(list, chunks[1]);
+                    return;
+                }
+            }
+        }
+        self.draw_placeholder(f, self.current_screen());
+    }
+
+    /// Draw the device detail screen
+    fn draw_device_detail(&self, f: &mut Frame) {
+        if let Some(ref manager) = self.presence_manager {
+            // Show editor if active
+            if let Some(ref editor) = manager.editor {
+                if let PresenceEditor::Device(ref device_editor) = editor {
+                    let text = vec![
+                        Line::from(format!("Name: {}", device_editor.name)),
+                        Line::from(format!("Building: {}", device_editor.location.building.as_deref().unwrap_or(""))),
+                        Line::from(format!("Floor: {}", device_editor.location.floor.map(|f| f.to_string()).unwrap_or("".to_string()))),
+                        Line::from(format!("Room: {}", device_editor.location.room.as_deref().unwrap_or(""))),
+                        Line::from(format!("Zone: {}", device_editor.location.zone.as_deref().unwrap_or(""))),
+                        Line::from(""),
+                        Line::from("↑/↓: Navigate field  Backspace: Delete  S: Save  Esc: Cancel"),
+                    ];
+
+                    let paragraph = Paragraph::new(text)
+                        .block(Block::default().borders(Borders::ALL).title("Edit Device"))
+                        .wrap(Wrap { trim: true });
+
+                    f.render_widget(paragraph, f.size());
+                    return;
+                }
+            }
+
+            // Show normal view
+            if let Some(party_idx) = manager.selected_party {
+                if let Some(device_idx) = manager.selected_device {
+                    if let Some(party) = manager.config.parties.get(party_idx) {
+                        if let Some(device) = party.devices.get(device_idx) {
+                            let text = vec![
+                                Line::from(format!("Device: {}", device.name)),
+                                Line::from(""),
+                                Line::from(format!("Identifiers: {}", device.identifiers.len())),
+                                Line::from(""),
+                                if let Some(ref loc) = device.location {
+                                    Line::from(format!("Location: {} (Floor: {}, Room: {}, Zone: {})",
+                                        loc.building.as_deref().unwrap_or("N/A"),
+                                        loc.floor.map(|f| f.to_string()).unwrap_or("N/A".to_string()),
+                                        loc.room.as_deref().unwrap_or("N/A"),
+                                        loc.zone.as_deref().unwrap_or("N/A")))
+                                } else {
+                                    Line::from("Location: Not set")
+                                },
+                                Line::from(""),
+                                Line::from("Enter: View Identifiers  E: Edit  D: Delete  Esc: Back"),
+                            ];
+
+                            let paragraph = Paragraph::new(text)
+                                .block(Block::default().borders(Borders::ALL).title(Screen::DeviceDetail.title()))
+                                .wrap(Wrap { trim: true });
+
+                            f.render_widget(paragraph, f.size());
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        self.draw_placeholder(f, self.current_screen());
+    }
+
+    /// Draw the identifier list screen
+    fn draw_identifier_list(&self, f: &mut Frame) {
+        if let Some(ref manager) = self.presence_manager {
+            if let Some(party_idx) = manager.selected_party {
+                if let Some(device_idx) = manager.selected_device {
+                    if let Some(party) = manager.config.parties.get(party_idx) {
+                        if let Some(device) = party.devices.get(device_idx) {
+                            let items: Vec<ListItem> = device.identifiers.iter().map(|id| {
+                                ListItem::new(format!("{} ({:?}): {}", id.name, id.id_type, id.value))
+                            }).collect();
+
+                            let list_items: Vec<ListItem> = items
+                                .iter()
+                                .enumerate()
+                                .map(|(i, item)| {
+                                    let style = if i == self.selected {
+                                        Style::default()
+                                            .fg(Color::Cyan)
+                                            .add_modifier(Modifier::BOLD)
+                                    } else {
+                                        Style::default()
+                                    };
+                                    item.clone().style(style)
+                                })
+                                .collect();
+
+                            let list = List::new(list_items)
+                                .block(Block::default().borders(Borders::ALL).title(Screen::IdentifierList.title()))
+                                .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+
+                            let chunks = Layout::default()
+                                .direction(Direction::Vertical)
+                                .margin(2)
+                                .constraints([Constraint::Length(1), Constraint::Min(0)].as_ref())
+                                .split(f.size());
+
+                            let help_text = vec![
+                                Line::from("A: Add  E: Edit  D: Delete  Enter: Edit  Esc: Back"),
+                            ];
+
+                            let help = Paragraph::new(help_text)
+                                .style(Style::default().fg(Color::Cyan))
+                                .alignment(Alignment::Center);
+
+                            f.render_widget(help, chunks[0]);
+                            f.render_widget(list, chunks[1]);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        self.draw_placeholder(f, self.current_screen());
+    }
+
+    /// Draw the identifier edit screen
+    fn draw_identifier_edit(&self, f: &mut Frame) {
+        if let Some(ref manager) = self.presence_manager {
+            // Show editor if active
+            if let Some(ref editor) = manager.editor {
+                if let PresenceEditor::Identifier(ref id_editor) = editor {
+                    let text = vec![
+                        Line::from(format!("Name: {}", id_editor.name)),
+                        Line::from(format!("Type: {:?}", id_editor.id_type)),
+                        Line::from(format!("Value: {}", id_editor.value)),
+                        Line::from(""),
+                        Line::from("↑/↓: Navigate field  Type: Change type  Backspace: Delete  S: Save  Esc: Cancel"),
+                    ];
+
+                    let paragraph = Paragraph::new(text)
+                        .block(Block::default().borders(Borders::ALL).title(Screen::IdentifierEdit.title()))
+                        .wrap(Wrap { trim: true });
+
+                    f.render_widget(paragraph, f.size());
+                    return;
+                }
+            }
+
+            // Show normal view if identifier exists
+            if let Some(identifier) = manager.get_selected_identifier() {
+                let text = vec![
+                    Line::from(format!("Name: {}", identifier.name)),
+                    Line::from(format!("Type: {:?}", identifier.id_type)),
+                    Line::from(format!("Value: {}", identifier.value)),
+                    Line::from(""),
+                    Line::from("E: Edit  D: Delete  Esc: Back"),
+                ];
+
+                let paragraph = Paragraph::new(text)
+                    .block(Block::default().borders(Borders::ALL).title("Identifier Details"))
+                    .wrap(Wrap { trim: true });
+
+                f.render_widget(paragraph, f.size());
+                return;
+            }
+        }
+        self.draw_placeholder(f, self.current_screen());
+    }
 }
 
 impl Default for TuiApp {
@@ -616,9 +1324,9 @@ mod tests {
         let mut app = TuiApp::new();
         app.push_screen(Screen::Config);
         app.push_screen(Screen::Parties);
-        app.push_screen(Screen::Devices);
+        app.push_screen(Screen::DeviceList);
 
-        assert_eq!(app.current_screen(), Screen::Devices);
+        assert_eq!(app.current_screen(), Screen::DeviceList);
 
         app.pop_screen();
         assert_eq!(app.current_screen(), Screen::Parties);
@@ -667,7 +1375,7 @@ mod tests {
         assert_eq!(Screen::ConfigDiscovery.title(), "Discovery Settings");
         assert_eq!(Screen::ConfigNotifier.title(), "Notifier Configuration");
         assert_eq!(Screen::Parties.title(), "Parties");
-        assert_eq!(Screen::Devices.title(), "Devices");
+        assert_eq!(Screen::DeviceList.title(), "Devices");
         assert_eq!(Screen::Notifiers.title(), "Notifiers");
         assert_eq!(Screen::Test.title(), "Test Notifiers");
         assert_eq!(Screen::Help.title(), "Keyboard Shortcuts");
