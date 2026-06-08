@@ -97,6 +97,43 @@ fn test_status_json() {
 }
 
 #[test]
+fn test_progress_quiet_mode() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--quiet")
+        .arg("status")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("⠋").not()); // No spinner in quiet mode
+}
+
+#[test]
+fn test_exit_code_success() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--help")
+        .assert()
+        .success()
+        .code(0);
+}
+
+#[test]
+fn test_exit_code_usage_error() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--invalid-flag")
+        .assert()
+        .failure()
+        .code(2); // Usage error
+}
+
+#[test]
+fn test_exit_code_help_includes_exit_codes() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Exit codes:"));
+}
+
+#[test]
 fn test_export() {
     let mut cmd = Command::cargo_bin("proximityd").unwrap();
     cmd.arg("export")

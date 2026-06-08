@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 6
 parallel_id: 2
 branch: "feature/current/cli-standards/story-06-002-progress-exit-codes"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,13 +27,13 @@ Implement progress indicators for long-running operations and ensure all exit co
 
 ## Sub-Tasks
 
-- [ ] Add progress indicator library dependency to Cargo.toml (indicatif)
-- [ ] Implement progress bar for daemon startup
-- [ ] Implement progress bar for signal log export
-- [ ] Implement progress bar for discovery analysis
-- [ ] Implement progress spinner for other long operations
-- [ ] Ensure progress indicators respect `--quiet` flag (no progress in quiet mode)
-- [ ] Define standard exit codes:
+- [x] Add progress indicator library dependency to Cargo.toml (indicatif)
+- [x] Implement progress bar for daemon startup
+- [x] Implement progress bar for signal log export
+- [x] Implement progress bar for discovery analysis
+- [x] Implement progress spinner for other long operations
+- [x] Ensure progress indicators respect `--quiet` flag (no progress in quiet mode)
+- [x] Define standard exit codes:
   - 0: success
   - 1: generic error
   - 2: usage error
@@ -42,11 +42,11 @@ Implement progress indicators for long-running operations and ensure all exit co
   - 5: file not found
   - 6: permission denied
   - 130: SIGINT (Ctrl+C)
-- [ ] Audit all existing exit codes and update to standard values
-- [ ] Update error handling to use appropriate exit codes
-- [ ] Add exit code documentation to help text
-- [ ] Add tests for progress indicators
-- [ ] Add tests for exit codes
+- [x] Audit all existing exit codes and update to standard values
+- [x] Update error handling to use appropriate exit codes
+- [x] Add exit code documentation to help text
+- [x] Add tests for progress indicators
+- [x] Add tests for exit codes
 
 ## Relevant Files
 
@@ -59,20 +59,20 @@ Implement progress indicators for long-running operations and ensure all exit co
 
 ## Acceptance Criteria
 
-- [ ] Progress bars show for daemon startup
-- [ ] Progress bars show for signal log export
-- [ ] Progress bars show for discovery analysis
-- [ ] Progress indicators do not show in `--quiet` mode
-- [ ] Exit code 0 used for success
-- [ ] Exit code 1 used for generic errors
-- [ ] Exit code 2 used for usage errors
-- [ ] Exit code 3 used for network errors
-- [ ] Exit code 4 used for validation errors
-- [ ] Exit code 5 used for file not found
-- [ ] Exit code 6 used for permission denied
-- [ ] Exit code 130 used for SIGINT
-- [ ] All progress functionality has tests
-- [ ] All exit code behavior has tests
+- [x] Progress bars show for daemon startup
+- [x] Progress bars show for signal log export
+- [x] Progress bars show for discovery analysis
+- [x] Progress indicators do not show in `--quiet` mode
+- [x] Exit code 0 used for success
+- [x] Exit code 1 used for generic errors
+- [x] Exit code 2 used for usage errors
+- [x] Exit code 3 used for network errors
+- [x] Exit code 4 used for validation errors
+- [x] Exit code 5 used for file not found
+- [x] Exit code 6 used for permission denied
+- [x] Exit code 130 used for SIGINT
+- [x] All progress functionality has tests
+- [x] All exit code behavior has tests
 
 ## Test Plan
 

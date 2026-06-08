@@ -2,6 +2,7 @@ pub mod cli;
 pub mod config;
 pub mod detection;
 pub mod discovery;
+pub mod error;
 pub mod health;
 pub mod location;
 pub mod notifier;

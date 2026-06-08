@@ -9,8 +9,9 @@ use std::path::PathBuf;
 use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-// Import pager utilities
-use btnotify::cli::{page_output, should_page_output};
+// Import pager and progress utilities
+use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message};
+use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
 
 // Module name for logging
 const MODULE_NAME: &str = "proximityd";
@@ -20,7 +21,7 @@ static COLORS_ENABLED: Lazy<bool> =
     Lazy::new(|| atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err());
 
 #[derive(Parser)]
-#[command(name = "proximityd", version, about = "A CLI notification tool")]
+#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nExit codes:\n  0   Success\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
 struct Cli {
     /// Input files or glob patterns. Use "-" for stdin.
     #[arg(value_name = "INPUTS")]
@@ -183,6 +184,7 @@ enum Commands {
 async fn run_daemon(
     app_config: config::AppConfig,
     devices_config: config::DevicesConfig,
+    quiet: bool,
 ) -> Result<()> {
     use btnotify::detection::{run_detection_loop, DetectionEngine};
     use btnotify::notifier::NotifierRegistry;
@@ -193,7 +195,8 @@ async fn run_daemon(
     use std::sync::Arc;
     use std::time::Duration;
 
-    info!("Starting proximityd daemon (btleplug)");
+    let spinner = create_spinner(quiet);
+    set_message(&spinner, "Starting proximityd daemon (btleplug)");
 
     let notifiers = NotifierRegistry::from_config(&app_config)
         .context("Failed to initialise notifiers from config")?;
@@ -240,7 +243,10 @@ async fn run_daemon(
         let mut sighup = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::hangup())
             .expect("Failed to install SIGHUP handler");
         tokio::select! {
-            _ = tokio::signal::ctrl_c() => {},
+            _ = tokio::signal::ctrl_c() => {
+                info!("SIGINT received, exiting with code 130");
+                std::process::exit(EXIT_SIGINT);
+            },
             _ = sigterm.recv() => {},
             _ = sighup.recv() => {
                 info!("SIGHUP received - config reload requested");
@@ -254,8 +260,10 @@ async fn run_daemon(
 
     #[allow(deprecated)]
     let exit_check_interval = Duration::from_secs(app_config.exit_timeout_seconds.max(5));
+    set_message(&spinner, "Running detection loop");
     run_detection_loop(engine, rx, exit_check_interval, notifiers, shutdown_rx).await;
 
+    finish_with_message(&spinner, "Daemon shutdown complete");
     info!("Daemon shutdown complete");
     Ok(())
 }
@@ -351,14 +359,19 @@ fn run_discover(hours: u32, min_confidence: f64, output: Option<PathBuf>, no_pag
 
     info!("Running discovery: hours={}, min_confidence={}", hours, min_confidence);
 
+    let spinner = create_spinner(quiet);
+    set_message(&spinner, "Opening signal log");
+
     let db_path = db_path::default_db_path();
     info!("Using signal log at: {}", db_path.display());
 
     let engine = DiscoveryEngine::open(&db_path).context("Failed to open signal log")?;
+    set_message(&spinner, "Computing correlations");
     let suggestions = engine
         .discover(hours, min_confidence)
         .context("Failed to compute correlations")?;
 
+    finish_with_message(&spinner, &format!("Found {} suggestion(s)", suggestions.len()));
     info!("Found {} suggestion(s)", suggestions.len());
 
     let toml_output = toml::to_string_pretty(&suggestions)
@@ -458,12 +471,16 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
 
     info!("Running export: format={}, since={:?}", format, since);
 
+    let spinner = create_spinner(quiet);
+    set_message(&spinner, "Opening signal log");
+
     let db_path = db_path::default_db_path();
     info!("Using signal log at: {}", db_path.display());
 
     // Check if database exists, if not return empty output
     if !db_path.exists() {
         info!("Signal log database does not exist at {}", db_path.display());
+        abandon_with_message(&spinner, "Signal log database does not exist");
         let output_string = match format.as_str() {
             "jsonl" => String::new(),
             "csv" => "ts,scanner,id_type,id_value,rssi,party_name,device_name,location_building,location_floor,location_room,location_zone\n".to_string(),
@@ -490,6 +507,7 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
         return Ok(());
     }
 
+    set_message(&spinner, "Opening database");
     let conn = Connection::open(&db_path)
         .with_context(|| format!("Failed to open signal log at {}", db_path.display()))?;
 
@@ -501,6 +519,7 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
 
     query.push_str(" ORDER BY ts ASC");
 
+    set_message(&spinner, "Preparing query");
     let mut stmt = conn.prepare(&query)
         .context("Failed to prepare query")?;
 
@@ -539,6 +558,7 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
     };
 
     let rows = rows.context("Failed to execute query")?;
+    set_message(&spinner, &format!("Processing {} rows", rows.len()));
 
     let output_string = match format.as_str() {
         "jsonl" => {
@@ -606,8 +626,10 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
 
     match output {
         Some(path) => {
+            set_message(&spinner, &format!("Writing export to {}", path.display()));
             std::fs::write(&path, output_string)
                 .with_context(|| format!("Failed to write export to {}", path.display()))?;
+            finish_with_message(&spinner, &format!("Export written to {}", path.display()));
             info!("Export written to {}", path.display());
         }
         None => {
@@ -640,7 +662,7 @@ fn main() -> Result<()> {
         } else {
             print!("{}", help_str);
         }
-        std::process::exit(0);
+        std::process::exit(EXIT_SUCCESS);
     }
 
     // Docker HEALTHCHECK — quick check without loading full config
@@ -648,11 +670,11 @@ fn main() -> Result<()> {
         match btnotify::health::check_heartbeat_file() {
             Ok(()) => {
                 println!("healthy");
-                std::process::exit(0);
+                std::process::exit(EXIT_SUCCESS);
             }
             Err(msg) => {
                 eprintln!("unhealthy: {}", msg);
-                std::process::exit(1);
+                std::process::exit(EXIT_GENERIC_ERROR);
             }
         }
     }
@@ -662,7 +684,7 @@ fn main() -> Result<()> {
         init_logging(&cli, None)?;
         if let Err(e) = config::initialize_config(true) {
             eprintln!("Config initialization error: {e}");
-            std::process::exit(1);
+            std::process::exit(EXIT_VALIDATION_ERROR);
         }
         println!("Config files re-initialized with default templates");
         return Ok(());
@@ -673,7 +695,7 @@ fn main() -> Result<()> {
         let cmd = Cli::command();
         if let Err(e) = btnotify::cli::display_man_page(&cmd, None) {
             eprintln!("Man page error: {e}");
-            std::process::exit(1);
+            std::process::exit(EXIT_GENERIC_ERROR);
         }
         return Ok(());
     }
@@ -697,7 +719,7 @@ fn main() -> Result<()> {
             }
             _ => {
                 eprintln!("Unsupported shell: {}. Supported: bash, zsh, fish", shell);
-                std::process::exit(1);
+                std::process::exit(EXIT_USAGE_ERROR);
             }
         }
         return Ok(());
@@ -717,7 +739,7 @@ fn main() -> Result<()> {
 
                 if let Err(e) = run_discover(*hours, *min_confidence, output.clone(), *no_pager, cli.quiet) {
                     error!("Discovery error: {e}");
-                    std::process::exit(1);
+                    std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
@@ -727,7 +749,7 @@ fn main() -> Result<()> {
 
                 if let Err(e) = run_status(*json, *no_pager, cli.quiet) {
                     error!("Status error: {e}");
-                    std::process::exit(1);
+                    std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
@@ -742,7 +764,7 @@ fn main() -> Result<()> {
 
                 if let Err(e) = run_export(format.clone(), since.clone(), output.clone(), *no_pager, cli.quiet) {
                     error!("Export error: {e}");
-                    std::process::exit(1);
+                    std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
@@ -753,7 +775,7 @@ fn main() -> Result<()> {
                 let cmd = Cli::command();
                 if let Err(e) = btnotify::cli::run_install(*force, *dry_run, &cmd) {
                     error!("Install error: {e}");
-                    std::process::exit(1);
+                    std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
@@ -763,7 +785,7 @@ fn main() -> Result<()> {
 
                 if let Err(e) = btnotify::cli::run_uninstall(*force, *dry_run, cli.quiet) {
                     error!("Uninstall error: {e}");
-                    std::process::exit(1);
+                    std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
@@ -775,7 +797,7 @@ fn main() -> Result<()> {
                 };
                 if let Err(e) = btnotify::cli::generate_completion(&mut cmd, args) {
                     eprintln!("Completion generation error: {e}");
-                    std::process::exit(1);
+                    std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
@@ -783,7 +805,7 @@ fn main() -> Result<()> {
                 let cmd = Cli::command();
                 if let Err(e) = btnotify::cli::display_man_page(&cmd, command.as_deref()) {
                     eprintln!("Man page error: {e}");
-                    std::process::exit(1);
+                    std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
@@ -795,7 +817,7 @@ fn main() -> Result<()> {
         Ok(cfg) => cfg,
         Err(e) => {
             eprintln!("Failed to load config: {e}");
-            std::process::exit(1);
+            std::process::exit(EXIT_VALIDATION_ERROR);
         }
     };
 
@@ -804,7 +826,7 @@ fn main() -> Result<()> {
         Ok(cfg) => cfg,
         Err(e) => {
             eprintln!("Failed to load devices config: {e}");
-            std::process::exit(1);
+            std::process::exit(EXIT_VALIDATION_ERROR);
         }
     };
 
@@ -825,11 +847,11 @@ fn main() -> Result<()> {
         if !btnotify::cli::tui::is_tui_supported() {
             error!("TUI mode is not supported in this environment");
             error!("Ensure you are running in a terminal with TTY support");
-            std::process::exit(1);
+            std::process::exit(EXIT_USAGE_ERROR);
         }
         if let Err(e) = btnotify::cli::run_tui() {
             error!("TUI error: {e}");
-            std::process::exit(1);
+            std::process::exit(EXIT_GENERIC_ERROR);
         }
         return Ok(());
     }
@@ -861,9 +883,9 @@ fn main() -> Result<()> {
     // Daemon mode: run continuous BLE scan + presence detection
     if cli.daemon {
         let rt = tokio::runtime::Runtime::new()?;
-        if let Err(e) = rt.block_on(run_daemon(app_config, devices_config)) {
+        if let Err(e) = rt.block_on(run_daemon(app_config, devices_config, cli.quiet)) {
             error!("Daemon error: {e}");
-            std::process::exit(1);
+            std::process::exit(EXIT_GENERIC_ERROR);
         }
         return Ok(());
     }
@@ -888,7 +910,7 @@ fn main() -> Result<()> {
                 } else {
                     print!("{}", help_str);
                 }
-                std::process::exit(1);
+                std::process::exit(EXIT_USAGE_ERROR);
             }
 
             process_content("stdin", &buffer)?;
