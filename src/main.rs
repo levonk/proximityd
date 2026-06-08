@@ -9,6 +9,9 @@ use std::path::PathBuf;
 use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
+// Import pager utilities
+use btnotify::cli::{page_output, should_page_output};
+
 // Module name for logging
 const MODULE_NAME: &str = "proximityd";
 
@@ -80,6 +83,10 @@ struct Cli {
     #[arg(long)]
     man: bool,
 
+    /// Disable pager for long output
+    #[arg(long)]
+    no_pager: bool,
+
     /// Discover identifier correlations from signal log
     #[command(subcommand)]
     command: Option<Commands>,
@@ -100,12 +107,20 @@ enum Commands {
         /// Output file path (default: stdout)
         #[arg(long)]
         output: Option<PathBuf>,
+
+        /// Disable pager for long output
+        #[arg(long)]
+        no_pager: bool,
     },
     /// Show current presence status
     Status {
         /// Output as JSON
         #[arg(long)]
         json: bool,
+
+        /// Disable pager for long output
+        #[arg(long)]
+        no_pager: bool,
     },
     /// Export signal log data
     Export {
@@ -120,6 +135,10 @@ enum Commands {
         /// Output file path (default: stdout)
         #[arg(long)]
         output: Option<PathBuf>,
+
+        /// Disable pager for long output
+        #[arg(long)]
+        no_pager: bool,
     },
     /// Install proximityd: generate shell completions and initialize config files
     Install {
@@ -316,7 +335,7 @@ fn init_logging(cli: &Cli, app_config: Option<&config::AppConfig>) -> Result<()>
     Ok(())
 }
 
-fn run_discover(hours: u32, min_confidence: f64, output: Option<PathBuf>) -> Result<()> {
+fn run_discover(hours: u32, min_confidence: f64, output: Option<PathBuf>, no_pager: bool, quiet: bool) -> Result<()> {
     use btnotify::discovery::DiscoveryEngine;
     use btnotify::signals::db_path;
 
@@ -342,14 +361,19 @@ fn run_discover(hours: u32, min_confidence: f64, output: Option<PathBuf>) -> Res
             info!("Suggestions written to {}", path.display());
         }
         None => {
-            println!("{}", toml_output);
+            if should_page_output(&toml_output, no_pager, quiet) {
+                debug!("Paging output through pager");
+                page_output(&toml_output)?;
+            } else {
+                println!("{}", toml_output);
+            }
         }
     }
 
     Ok(())
 }
 
-fn run_status(json: bool) -> Result<()> {
+fn run_status(json: bool, no_pager: bool, quiet: bool) -> Result<()> {
     use btnotify::state::{PresenceStateTable, SerializableTrackedDevice};
 
     info!("Running status command");
@@ -366,16 +390,17 @@ fn run_status(json: bool) -> Result<()> {
             .context("Failed to serialize status to JSON")?;
         println!("{}", output);
     } else {
-        println!("Presence Status");
-        println!("================");
-        println!("Total present devices: {}", present.len());
-        println!();
+        let mut output = String::new();
+        output.push_str("Presence Status\n");
+        output.push_str("================\n");
+        output.push_str(&format!("Total present devices: {}\n\n", present.len()));
 
         if present.is_empty() {
-            println!("No devices currently present.");
+            output.push_str("No devices currently present.");
         } else {
-            println!("{:<20} {:<20} {:<10} {:<15} {:<10}", "Name", "MAC", "State", "Last Seen", "RSSI");
-            println!("{}", "-".repeat(85));
+            output.push_str(&format!("{:<20} {:<20} {:<10} {:<15} {:<10}\n", "Name", "MAC", "State", "Last Seen", "RSSI"));
+            output.push_str(&str::repeat("-", 85));
+            output.push('\n');
 
             for device in present {
                 let name = if device.name.is_empty() {
@@ -402,15 +427,22 @@ fn run_status(json: bool) -> Result<()> {
                     btnotify::state::PresenceState::Pending => "Pending",
                 };
 
-                println!("{:<20} {:<20} {:<10} {:<15} {:<10}", name, device.mac, state_str, last_seen, device.rssi);
+                output.push_str(&format!("{:<20} {:<20} {:<10} {:<15} {:<10}\n", name, device.mac, state_str, last_seen, device.rssi));
             }
+        }
+
+        if should_page_output(&output, no_pager, quiet) {
+            debug!("Paging output through pager");
+            page_output(&output)?;
+        } else {
+            print!("{}", output);
         }
     }
 
     Ok(())
 }
 
-fn run_export(format: String, since: Option<String>, output: Option<PathBuf>) -> Result<()> {
+fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no_pager: bool, quiet: bool) -> Result<()> {
     use btnotify::signals::db_path;
     use rusqlite::Connection;
 
@@ -437,7 +469,12 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>) ->
                 info!("Export written to {}", path.display());
             }
             None => {
-                print!("{}", output_string);
+                if should_page_output(&output_string, no_pager, quiet) {
+                    debug!("Paging output through pager");
+                    page_output(&output_string)?;
+                } else {
+                    print!("{}", output_string);
+                }
             }
         }
         return Ok(());
@@ -564,7 +601,12 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>) ->
             info!("Export written to {}", path.display());
         }
         None => {
-            print!("{}", output_string);
+            if should_page_output(&output_string, no_pager, quiet) {
+                debug!("Paging output through pager");
+                page_output(&output_string)?;
+            } else {
+                print!("{}", output_string);
+            }
         }
     }
 
@@ -578,7 +620,16 @@ fn main() -> Result<()> {
     // Handle usage flag
     if cli.usage {
         use clap::CommandFactory;
-        Cli::command().print_help()?;
+        let mut cmd = Cli::command();
+        let mut help_output = Vec::new();
+        cmd.write_help(&mut help_output)?;
+        let help_str = String::from_utf8(help_output)?;
+        if should_page_output(&help_str, cli.no_pager, cli.quiet) {
+            debug!("Paging help output through pager");
+            page_output(&help_str)?;
+        } else {
+            print!("{}", help_str);
+        }
         std::process::exit(0);
     }
 
@@ -649,21 +700,22 @@ fn main() -> Result<()> {
                 hours,
                 min_confidence,
                 output,
+                no_pager,
             } => {
                 // Initialize logging with defaults for discover command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_discover(*hours, *min_confidence, output.clone()) {
+                if let Err(e) = run_discover(*hours, *min_confidence, output.clone(), *no_pager, cli.quiet) {
                     error!("Discovery error: {e}");
                     std::process::exit(1);
                 }
                 return Ok(());
             }
-            Commands::Status { json } => {
+            Commands::Status { json, no_pager } => {
                 // Initialize logging with defaults for status command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_status(*json) {
+                if let Err(e) = run_status(*json, *no_pager, cli.quiet) {
                     error!("Status error: {e}");
                     std::process::exit(1);
                 }
@@ -673,11 +725,12 @@ fn main() -> Result<()> {
                 format,
                 since,
                 output,
+                no_pager,
             } => {
                 // Initialize logging with defaults for export command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_export(format.clone(), since.clone(), output.clone()) {
+                if let Err(e) = run_export(format.clone(), since.clone(), output.clone(), *no_pager, cli.quiet) {
                     error!("Export error: {e}");
                     std::process::exit(1);
                 }
@@ -815,7 +868,16 @@ fn main() -> Result<()> {
 
             if buffer.trim_end().is_empty() {
                 use clap::CommandFactory;
-                Cli::command().print_help()?;
+                let mut cmd = Cli::command();
+                let mut help_output = Vec::new();
+                cmd.write_help(&mut help_output)?;
+                let help_str = String::from_utf8(help_output)?;
+                if should_page_output(&help_str, cli.no_pager, cli.quiet) {
+                    debug!("Paging help output through pager");
+                    page_output(&help_str)?;
+                } else {
+                    print!("{}", help_str);
+                }
                 std::process::exit(1);
             }
 
@@ -829,7 +891,16 @@ fn main() -> Result<()> {
         }
 
         use clap::CommandFactory;
-        Cli::command().print_help()?;
+        let mut cmd = Cli::command();
+        let mut help_output = Vec::new();
+        cmd.write_help(&mut help_output)?;
+        let help_str = String::from_utf8(help_output)?;
+        if should_page_output(&help_str, cli.no_pager, cli.quiet) {
+            debug!("Paging help output through pager");
+            page_output(&help_str)?;
+        } else {
+            print!("{}", help_str);
+        }
         std::process::exit(1);
     }
 
