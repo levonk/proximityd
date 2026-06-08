@@ -2,13 +2,17 @@ use anyhow::{Context, Result};
 use clap::Command;
 use directories::ProjectDirs;
 use std::fs;
-use std::io::{self, Write};
 use std::path::Path;
 
 /// Install proximityd: generate shell completions and initialize config files
-pub fn run_install(_force: bool, cmd: &Command) -> Result<()> {
-    println!("Installing proximityd...");
-    println!();
+pub fn run_install(_force: bool, dry_run: bool, cmd: &Command) -> Result<()> {
+    if dry_run {
+        println!("DRY RUN: Would install proximityd...");
+        println!();
+    } else {
+        println!("Installing proximityd...");
+        println!();
+    }
 
     // Create config directory
     let proj_dirs = ProjectDirs::from("com.github", "levonk", "proximityd")
@@ -16,9 +20,13 @@ pub fn run_install(_force: bool, cmd: &Command) -> Result<()> {
     let config_dir = proj_dirs.config_dir();
 
     if !config_dir.exists() {
-        fs::create_dir_all(&config_dir)
-            .with_context(|| format!("Failed to create config directory: {}", config_dir.display()))?;
-        println!("Created config directory: {}", config_dir.display());
+        if dry_run {
+            println!("DRY RUN: Would create config directory: {}", config_dir.display());
+        } else {
+            fs::create_dir_all(config_dir)
+                .with_context(|| format!("Failed to create config directory: {}", config_dir.display()))?;
+            println!("Created config directory: {}", config_dir.display());
+        }
     } else {
         println!("Config directory exists: {}", config_dir.display());
     }
@@ -26,10 +34,14 @@ pub fn run_install(_force: bool, cmd: &Command) -> Result<()> {
     // Initialize config.toml
     let config_path = config_dir.join("config.toml");
     if !config_path.exists() {
-        let config_content = include_str!("../../config.example.toml");
-        fs::write(&config_path, config_content)
-            .with_context(|| format!("Failed to write config.toml to {}", config_path.display()))?;
-        println!("Created config file: {}", config_path.display());
+        if dry_run {
+            println!("DRY RUN: Would create config file: {}", config_path.display());
+        } else {
+            let config_content = include_str!("../../config.example.toml");
+            fs::write(&config_path, config_content)
+                .with_context(|| format!("Failed to write config.toml to {}", config_path.display()))?;
+            println!("Created config file: {}", config_path.display());
+        }
     } else {
         println!("Config file exists: {}", config_path.display());
         println!("  (Not overwriting existing file)");
@@ -38,8 +50,11 @@ pub fn run_install(_force: bool, cmd: &Command) -> Result<()> {
     // Initialize presence.toml
     let presence_path = config_dir.join("presence.toml");
     if !presence_path.exists() {
-        // For now, create a minimal presence.toml since we don't have an example file
-        let presence_content = r#"# Presence configuration for proximityd
+        if dry_run {
+            println!("DRY RUN: Would create presence file: {}", presence_path.display());
+        } else {
+            // For now, create a minimal presence.toml since we don't have an example file
+            let presence_content = r#"# Presence configuration for proximityd
 # This file maps parties, devices, and identifiers for presence detection
 
 # Example party configuration
@@ -59,9 +74,10 @@ name = "Example Person"
     # Optional notes about this identifier
     # notes = "Primary phone"
 "#;
-        fs::write(&presence_path, presence_content)
-            .with_context(|| format!("Failed to write presence.toml to {}", presence_path.display()))?;
-        println!("Created presence file: {}", presence_path.display());
+            fs::write(&presence_path, presence_content)
+                .with_context(|| format!("Failed to write presence.toml to {}", presence_path.display()))?;
+            println!("Created presence file: {}", presence_path.display());
+        }
     } else {
         println!("Presence file exists: {}", presence_path.display());
         println!("  (Not overwriting existing file)");
@@ -70,20 +86,32 @@ name = "Example Person"
     println!();
 
     // Generate shell completions
-    generate_completions()?;
+    if dry_run {
+        println!("DRY RUN: Would generate shell completions");
+    } else {
+        generate_completions()?;
+    }
 
     // Install man pages
-    println!("Installing man pages...");
-    match crate::cli::install_man_pages(cmd) {
-        Ok(()) => println!("Man pages installed successfully"),
-        Err(e) => {
-            println!("Warning: Failed to install man pages: {}", e);
-            println!("Man pages will still be available via 'proximityd man' command");
+    if dry_run {
+        println!("DRY RUN: Would install man pages");
+    } else {
+        println!("Installing man pages...");
+        match crate::cli::install_man_pages(cmd) {
+            Ok(()) => println!("Man pages installed successfully"),
+            Err(e) => {
+                println!("Warning: Failed to install man pages: {}", e);
+                println!("Man pages will still be available via 'proximityd man' command");
+            }
         }
     }
 
     println!();
-    println!("Installation complete!");
+    if dry_run {
+        println!("DRY RUN: Installation would be complete (no changes made)");
+    } else {
+        println!("Installation complete!");
+    }
     println!();
     println!("Next steps:");
     println!("  1. Edit config files in: {}", config_dir.display());
@@ -99,12 +127,21 @@ name = "Example Person"
 }
 
 /// Uninstall proximityd: remove completions and optionally config files
-pub fn run_uninstall(force: bool) -> Result<()> {
-    println!("Uninstalling proximityd...");
-    println!();
+pub fn run_uninstall(force: bool, dry_run: bool, quiet: bool) -> Result<()> {
+    if dry_run {
+        println!("DRY RUN: Would uninstall proximityd...");
+        println!();
+    } else {
+        println!("Uninstalling proximityd...");
+        println!();
+    }
 
     // Remove shell completions
-    remove_completions()?;
+    if dry_run {
+        println!("DRY RUN: Would remove shell completions");
+    } else {
+        remove_completions()?;
+    }
 
     println!();
 
@@ -114,17 +151,17 @@ pub fn run_uninstall(force: bool) -> Result<()> {
     let config_dir = proj_dirs.config_dir();
 
     if config_dir.exists() {
-        if force {
-            remove_config_dir(&config_dir)?;
+        if dry_run {
+            println!("DRY RUN: Would remove config directory: {}", config_dir.display());
         } else {
-            print!("Remove config directory {}? [y/N]: ", config_dir.display());
-            io::stdout().flush()?;
-
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-
-            if input.trim().to_lowercase() == "y" {
-                remove_config_dir(&config_dir)?;
+            let should_remove = crate::cli::confirm(
+                &format!("Remove config directory {}?", config_dir.display()),
+                force,
+                quiet,
+            )?;
+            
+            if should_remove {
+                remove_config_dir(config_dir)?;
             } else {
                 println!("Config directory preserved: {}", config_dir.display());
             }
@@ -134,7 +171,11 @@ pub fn run_uninstall(force: bool) -> Result<()> {
     }
 
     println!();
-    println!("Uninstall complete!");
+    if dry_run {
+        println!("DRY RUN: Uninstall would be complete (no changes made)");
+    } else {
+        println!("Uninstall complete!");
+    }
     println!();
     println!("Note: The proximityd binary itself was not removed.");
     println!("To remove the binary, use your package manager or delete it manually.");
@@ -161,11 +202,11 @@ fn generate_completions() -> Result<()> {
     let bash_output = std::process::Command::new(&current_exe)
         .args(["--generate", "bash"])
         .output()
-        .with_context(|| format!("Failed to generate Bash completion"))?;
+        .with_context(|| "Failed to generate Bash completion".to_string())?;
 
     if bash_output.status.success() {
         fs::write(&bash_path, String::from_utf8_lossy(&bash_output.stdout).to_string())
-            .with_context(|| format!("Failed to write Bash completion"))?;
+            .with_context(|| "Failed to write Bash completion".to_string())?;
         println!("  Bash: {}", bash_path.display());
     } else {
         return Err(anyhow::anyhow!("Failed to generate Bash completion: {}", String::from_utf8_lossy(&bash_output.stderr)));
@@ -176,11 +217,11 @@ fn generate_completions() -> Result<()> {
     let zsh_output = std::process::Command::new(&current_exe)
         .args(["--generate", "zsh"])
         .output()
-        .with_context(|| format!("Failed to generate Zsh completion"))?;
+        .with_context(|| "Failed to generate Zsh completion".to_string())?;
 
     if zsh_output.status.success() {
         fs::write(&zsh_path, String::from_utf8_lossy(&zsh_output.stdout).to_string())
-            .with_context(|| format!("Failed to write Zsh completion"))?;
+            .with_context(|| "Failed to write Zsh completion".to_string())?;
         println!("  Zsh: {}", zsh_path.display());
     } else {
         return Err(anyhow::anyhow!("Failed to generate Zsh completion: {}", String::from_utf8_lossy(&zsh_output.stderr)));
@@ -191,11 +232,11 @@ fn generate_completions() -> Result<()> {
     let fish_output = std::process::Command::new(&current_exe)
         .args(["--generate", "fish"])
         .output()
-        .with_context(|| format!("Failed to generate Fish completion"))?;
+        .with_context(|| "Failed to generate Fish completion".to_string())?;
 
     if fish_output.status.success() {
         fs::write(&fish_path, String::from_utf8_lossy(&fish_output.stdout).to_string())
-            .with_context(|| format!("Failed to write Fish completion"))?;
+            .with_context(|| "Failed to write Fish completion".to_string())?;
         println!("  Fish: {}", fish_path.display());
     } else {
         return Err(anyhow::anyhow!("Failed to generate Fish completion: {}", String::from_utf8_lossy(&fish_output.stderr)));

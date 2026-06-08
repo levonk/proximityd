@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 5
 parallel_id: 2
 branch: "feature/current/cli-standards/story-05-002-pager-integration"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,27 +27,27 @@ Implement automatic pager integration for long output. Commands that produce lon
 
 ## Sub-Tasks
 
-- [ ] Add pager library dependency to Cargo.toml (e.g., `pager` crate)
-- [ ] Implement pager detection function:
+- [x] Add pager library dependency to Cargo.toml (e.g., `pager` crate)
+- [x] Implement pager detection function:
   - Check PAGER environment variable
   - Default to `less` if PAGER not set
   - Fall back to no pager if pager not found
-- [ ] Implement pager invocation for long output:
+- [x] Implement pager invocation for long output:
   - Detect if output is long (> terminal lines)
   - Pipe output through pager
   - Handle pager errors gracefully
-- [ ] Add `--no-pager` flag to commands with long output:
+- [x] Add `--no-pager` flag to commands with long output:
   - status command
   - export command
   - discover command
   - help text
-- [ ] Implement pager for status command output
-- [ ] Implement pager for export command output
-- [ ] Implement pager for discover command output
-- [ ] Implement pager for help text
-- [ ] Ensure pager respects `--quiet` flag (no pager in quiet mode)
-- [ ] Add tests for pager integration
-- [ ] Test with different pagers (less, more, etc.)
+- [x] Implement pager for status command output
+- [x] Implement pager for export command output
+- [x] Implement pager for discover command output
+- [x] Implement pager for help text
+- [x] Ensure pager respects `--quiet` flag (no pager in quiet mode)
+- [x] Add tests for pager integration
+- [x] Test with different pagers (less, more, etc.)
 
 ## Relevant Files
 
@@ -59,16 +59,16 @@ Implement automatic pager integration for long output. Commands that produce lon
 
 ## Acceptance Criteria
 
-- [ ] Long output automatically uses pager (respects PAGER env var)
-- [ ] Default pager is `less` when PAGER not set
-- [ ] `--no-pager` flag bypasses paging
-- [ ] Status command output uses pager when long
-- [ ] Export command output uses pager when long
-- [ ] Discover command output uses pager when long
-- [ ] Help text uses pager when long
-- [ ] Pager is not used in `--quiet` mode
-- [ ] Pager errors are handled gracefully
-- [ ] All pager integration has tests
+- [x] Long output automatically uses pager (respects PAGER env var)
+- [x] Default pager is `less` when PAGER not set
+- [x] `--no-pager` flag bypasses paging
+- [x] Status command output uses pager when long
+- [x] Export command output uses pager when long
+- [x] Discover command output uses pager when long
+- [x] Help text uses pager when long
+- [x] Pager is not used in `--quiet` mode
+- [x] Pager errors are handled gracefully
+- [x] All pager integration has tests
 
 ## Test Plan
 

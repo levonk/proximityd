@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 6
 parallel_id: 1
 branch: "feature/current/cli-standards/story-06-001-dry-run-confirm"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,29 +27,29 @@ Implement dry-run mode for applicable commands and confirmation prompts for dest
 
 ## Sub-Tasks
 
-- [ ] Add `--dry-run` flag to applicable commands:
+- [x] Add `--dry-run` flag to applicable commands:
   - migrate command (if kept)
   - Any future config validation commands
   - Any future database operations
-- [ ] Implement dry-run logic:
+- [x] Implement dry-run logic:
   - Log all actions that would be taken
   - Do not execute any changes
   - Display summary of what would be done
-- [ ] Add confirmation prompts for destructive operations:
+- [x] Add confirmation prompts for destructive operations:
   - `--uninstall` command
   - Config file overwrites
   - Any future database deletion commands
-- [ ] Implement `--force` flag to bypass confirmation prompts:
+- [x] Implement `--force` flag to bypass confirmation prompts:
   - Add to all commands with confirmation prompts
   - Skip prompts when --force is set
-- [ ] Implement prompt format:
+- [x] Implement prompt format:
   - "Are you sure you want to [action]? [y/N]"
   - Default to No (require explicit Yes)
   - Case-insensitive input
-- [ ] Ensure prompts respect `--quiet` flag (auto-confirm No in quiet mode)
-- [ ] Add tests for dry-run mode
-- [ ] Add tests for confirmation prompts
-- [ ] Add tests for --force flag
+- [x] Ensure prompts respect `--quiet` flag (auto-confirm No in quiet mode)
+- [x] Add tests for dry-run mode
+- [x] Add tests for confirmation prompts
+- [x] Add tests for --force flag
 
 ## Relevant Files
 
@@ -60,15 +60,15 @@ Implement dry-run mode for applicable commands and confirmation prompts for dest
 
 ## Acceptance Criteria
 
-- [ ] `--dry-run` flag shows what would be done without making changes
-- [ ] Dry-run output clearly indicates no changes were made
-- [ ] Destructive operations require confirmation prompt
-- [ ] Confirmation prompt has clear format with default No
-- [ ] `--force` flag bypasses confirmation prompts
-- [ ] Prompts respect `--quiet` flag (auto-confirm No)
-- [ ] All dry-run functionality has tests
-- [ ] All confirmation functionality has tests
-- [ ] --force flag has tests
+- [x] `--dry-run` flag shows what would be done without making changes
+- [x] Dry-run output clearly indicates no changes were made
+- [x] Destructive operations require confirmation prompt
+- [x] Confirmation prompt has clear format with default No
+- [x] `--force` flag bypasses confirmation prompts
+- [x] Prompts respect `--quiet` flag (auto-confirm No)
+- [x] All dry-run functionality has tests
+- [x] All confirmation functionality has tests
+- [x] --force flag has tests
 
 ## Test Plan
 

@@ -2,7 +2,6 @@
 ///
 /// These templates are used when config files don't exist on first run.
 /// All settings are commented out with default values and explanations.
-
 /// Default template for config.toml with all settings commented out.
 pub const DEFAULT_CONFIG_TEMPLATE: &str = r#"# proximityd application configuration
 # Place this file at:

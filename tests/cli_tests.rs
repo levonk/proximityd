@@ -116,3 +116,23 @@ fn test_export_csv() {
         .success()
         .stdout(predicate::str::contains("ts,scanner")); // CSV header
 }
+
+#[test]
+fn test_install_dry_run() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("install")
+        .arg("--dry-run")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DRY RUN"));
+}
+
+#[test]
+fn test_uninstall_dry_run() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("uninstall")
+        .arg("--dry-run")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DRY RUN"));
+}

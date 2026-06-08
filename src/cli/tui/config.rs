@@ -62,11 +62,9 @@ impl FormField {
                     return false;
                 }
             }
-            FieldType::Select(options) => {
-                if !options.contains(&self.value.as_str()) {
-                    self.error = Some(format!("Must be one of: {}", options.join(", ")));
-                    return false;
-                }
+            FieldType::Select(options) if !options.contains(&self.value.as_str()) => {
+                self.error = Some(format!("Must be one of: {}", options.join(", ")));
+                return false;
             }
             _ => {}
         }
@@ -137,15 +135,11 @@ impl FormEditor {
 
     fn handle_navigation_key(&mut self, key: KeyCode) {
         match key {
-            KeyCode::Up => {
-                if self.selected_field > 0 {
-                    self.selected_field -= 1;
-                }
+            KeyCode::Up if self.selected_field > 0 => {
+                self.selected_field -= 1;
             }
-            KeyCode::Down => {
-                if self.selected_field < self.fields.len().saturating_sub(1) {
-                    self.selected_field += 1;
-                }
+            KeyCode::Down if self.selected_field < self.fields.len().saturating_sub(1) => {
+                self.selected_field += 1;
             }
             KeyCode::Enter => {
                 if let Some(field) = self.fields.get_mut(self.selected_field) {
@@ -197,28 +191,20 @@ impl FormEditor {
                     self.cursor_position += 1;
                     self.dirty = field.is_modified();
                 }
-                KeyCode::Backspace => {
-                    if self.cursor_position > 0 {
-                        field.value.remove(self.cursor_position - 1);
-                        self.cursor_position -= 1;
-                        self.dirty = field.is_modified();
-                    }
+                KeyCode::Backspace if self.cursor_position > 0 => {
+                    field.value.remove(self.cursor_position - 1);
+                    self.cursor_position -= 1;
+                    self.dirty = field.is_modified();
                 }
-                KeyCode::Delete => {
-                    if self.cursor_position < field.value.len() {
-                        field.value.remove(self.cursor_position);
-                        self.dirty = field.is_modified();
-                    }
+                KeyCode::Delete if self.cursor_position < field.value.len() => {
+                    field.value.remove(self.cursor_position);
+                    self.dirty = field.is_modified();
                 }
-                KeyCode::Left => {
-                    if self.cursor_position > 0 {
-                        self.cursor_position -= 1;
-                    }
+                KeyCode::Left if self.cursor_position > 0 => {
+                    self.cursor_position -= 1;
                 }
-                KeyCode::Right => {
-                    if self.cursor_position < field.value.len() {
-                        self.cursor_position += 1;
-                    }
+                KeyCode::Right if self.cursor_position < field.value.len() => {
+                    self.cursor_position += 1;
                 }
                 _ => {}
             }

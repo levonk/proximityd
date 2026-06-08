@@ -87,6 +87,10 @@ struct Cli {
     #[arg(long)]
     no_pager: bool,
 
+    /// Dry run mode - show what would be done without making changes
+    #[arg(long)]
+    dry_run: bool,
+
     /// Discover identifier correlations from signal log
     #[command(subcommand)]
     command: Option<Commands>,
@@ -145,12 +149,18 @@ enum Commands {
         /// Force installation without confirmation
         #[arg(long)]
         force: bool,
+        /// Dry run mode - show what would be done without making changes
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Uninstall proximityd: remove completions and optionally config files
     Uninstall {
         /// Force uninstall without confirmation
         #[arg(long)]
         force: bool,
+        /// Dry run mode - show what would be done without making changes
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Generate shell completion script
     Completion {
@@ -736,22 +746,22 @@ fn main() -> Result<()> {
                 }
                 return Ok(());
             }
-            Commands::Install { force } => {
+            Commands::Install { force, dry_run } => {
                 // Initialize logging with defaults for install command
                 init_logging(&cli, None)?;
 
                 let cmd = Cli::command();
-                if let Err(e) = btnotify::cli::run_install(*force, &cmd) {
+                if let Err(e) = btnotify::cli::run_install(*force, *dry_run, &cmd) {
                     error!("Install error: {e}");
                     std::process::exit(1);
                 }
                 return Ok(());
             }
-            Commands::Uninstall { force } => {
+            Commands::Uninstall { force, dry_run } => {
                 // Initialize logging with defaults for uninstall command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = btnotify::cli::run_uninstall(*force) {
+                if let Err(e) = btnotify::cli::run_uninstall(*force, *dry_run, cli.quiet) {
                     error!("Uninstall error: {e}");
                     std::process::exit(1);
                 }
