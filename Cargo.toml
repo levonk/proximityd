@@ -41,6 +41,7 @@ ratatui = "0.26"
 crossterm = "0.27"
 regex = "1.10"
 pager = "0.16"
+textwrap = "0.16"
 
 [features]
 default = []

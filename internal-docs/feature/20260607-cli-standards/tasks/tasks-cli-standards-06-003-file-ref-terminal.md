@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 6
 parallel_id: 3
 branch: "feature/current/cli-standards/story-06-003-file-ref-terminal"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,53 +27,53 @@ Implement VSCode-compatible file reference formatting for all file references wi
 
 ## Sub-Tasks
 
-- [ ] Implement file reference formatting function:
+- [x] Implement file reference formatting function:
   - Format: `file:///absolute/path/to/file:line:column`
   - Alternative format: `file:line:column`
   - Use VSCode-compatible format for modern terminals
-- [ ] Update all error messages to use file reference formatting:
+- [x] Update all error messages to use file reference formatting:
   - Config file errors
   - Validation errors with file locations
   - Test failure messages
-- [ ] Update log output to use file reference formatting where applicable
-- [ ] Implement terminal size detection:
+- [x] Update log output to use file reference formatting where applicable
+- [x] Implement terminal size detection:
   - Detect terminal width on startup
   - Detect terminal height on startup
   - Handle detection errors gracefully
-- [ ] Implement responsive output formatting:
+- [x] Implement responsive output formatting:
   - Adjust table widths based on terminal width
   - Wrap long lines at terminal width
   - Truncate with ellipsis if needed
-- [ ] Implement terminal resize handling (where possible):
+- [x] Implement terminal resize handling (where possible):
   - Detect SIGWINCH signal
   - Reformat output on resize
   - Handle resize in TUI mode
-- [ ] Ensure file references work on all platforms (Windows, Linux, macOS)
-- [ ] Add tests for file reference formatting
-- [ ] Add tests for terminal size detection
-- [ ] Add tests for responsive formatting
+- [x] Ensure file references work on all platforms (Windows, Linux, macOS)
+- [x] Add tests for file reference formatting
+- [x] Add tests for terminal size detection
+- [x] Add tests for responsive formatting
 
 ## Relevant Files
 
-- `src/cli/format.rs` — NEW FILE for formatting utilities
+- `src/cli/format.rs` — NEW FILE for formatting utilities (file references, terminal size, text wrapping)
 - `src/cli/mod.rs` — Export format module
-- `src/main.rs` — Use file reference formatting in errors
-- `src/error.rs` — Use file reference formatting in error types
-- `tests/cli_tests.rs` — Add formatting tests
+- `src/config/loader.rs` — Updated to use file reference formatting in error messages
+- `src/error.rs` — Added format_error_with_file helper function
+- `Cargo.toml` — Added textwrap dependency
 
 ## Acceptance Criteria
 
-- [ ] File references use VSCode-compatible format
-- [ ] Error messages include file references with line numbers
-- [ ] Log output uses file references where applicable
-- [ ] Terminal size is detected on startup
-- [ ] Output formatting adjusts to terminal width
-- [ ] Long lines wrap or truncate at terminal width
-- [ ] Terminal resize is detected and handled where possible
-- [ ] File references work on Windows, Linux, and macOS
-- [ ] All file reference formatting has tests
-- [ ] All terminal size detection has tests
-- [ ] All responsive formatting has tests
+- [x] File references use VSCode-compatible format
+- [x] Error messages include file references with line numbers
+- [x] Log output uses file references where applicable
+- [x] Terminal size is detected on startup
+- [x] Output formatting adjusts to terminal width
+- [x] Long lines wrap or truncate at terminal width
+- [x] Terminal resize is detected and handled where possible
+- [x] File references work on Windows, Linux, and macOS
+- [x] All file reference formatting has tests
+- [x] All terminal size detection has tests
+- [x] All responsive formatting has tests
 
 ## Test Plan
 

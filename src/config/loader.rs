@@ -5,6 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use tracing::{debug, info, warn};
 
+use crate::cli::format_file_reference_simple;
 use super::{AppConfig, DevicesConfig, Identifier, PresenceConfig};
 use super::templates::{DEFAULT_CONFIG_TEMPLATE, DEFAULT_PRESENCE_TEMPLATE};
 
@@ -37,10 +38,10 @@ pub fn initialize_config(force: bool) -> Result<()> {
     // Create config directory if it doesn't exist
     if !config_dir.exists() {
         fs::create_dir_all(&config_dir)
-            .with_context(|| format!("Failed to create config directory at {config_dir:?}"))?;
-        info!("Created config directory at {config_dir:?}");
+            .with_context(|| format!("Failed to create config directory at {}", format_file_reference_simple(&config_dir, None, None)))?;
+        info!("Created config directory at {}", format_file_reference_simple(&config_dir, None, None));
     } else {
-        debug!("Config directory already exists at {config_dir:?}");
+        debug!("Config directory already exists at {}", format_file_reference_simple(&config_dir, None, None));
     }
 
     let config_file = config_dir.join(CONFIG_FILE);
@@ -49,25 +50,25 @@ pub fn initialize_config(force: bool) -> Result<()> {
     // Write default config.toml if it doesn't exist (or if force is true)
     if !config_file.exists() || force {
         if force && config_file.exists() {
-            warn!("Force re-initialization: overwriting {config_file:?}");
+            warn!("Force re-initialization: overwriting {}", format_file_reference_simple(&config_file, None, None));
         }
         fs::write(&config_file, DEFAULT_CONFIG_TEMPLATE)
-            .with_context(|| format!("Failed to write config template to {config_file:?}"))?;
-        info!("Created default config at {config_file:?}");
+            .with_context(|| format!("Failed to write config template to {}", format_file_reference_simple(&config_file, None, None)))?;
+        info!("Created default config at {}", format_file_reference_simple(&config_file, None, None));
     } else {
-        debug!("Config file already exists at {config_file:?}, skipping");
+        debug!("Config file already exists at {}, skipping", format_file_reference_simple(&config_file, None, None));
     }
 
     // Write default presence.toml if it doesn't exist (or if force is true)
     if !presence_file.exists() || force {
         if force && presence_file.exists() {
-            warn!("Force re-initialization: overwriting {presence_file:?}");
+            warn!("Force re-initialization: overwriting {}", format_file_reference_simple(&presence_file, None, None));
         }
         fs::write(&presence_file, DEFAULT_PRESENCE_TEMPLATE)
-            .with_context(|| format!("Failed to write presence template to {presence_file:?}"))?;
-        info!("Created default presence config at {presence_file:?}");
+            .with_context(|| format!("Failed to write presence template to {}", format_file_reference_simple(&presence_file, None, None)))?;
+        info!("Created default presence config at {}", format_file_reference_simple(&presence_file, None, None));
     } else {
-        debug!("Presence config file already exists at {presence_file:?}, skipping");
+        debug!("Presence config file already exists at {}, skipping", format_file_reference_simple(&presence_file, None, None));
     }
 
     Ok(())
@@ -84,18 +85,18 @@ pub fn load_config(path: Option<PathBuf>) -> Result<AppConfig> {
     let file_path = path.unwrap_or_else(|| resolve_config_dir().join(CONFIG_FILE));
 
     if !file_path.exists() {
-        info!("Config not found at {file_path:?}; initializing with defaults");
+        info!("Config not found at {}; initializing with defaults", format_file_reference_simple(&file_path, None, None));
         initialize_config(false)?;
         return Ok(AppConfig::default());
     }
 
     let contents = std::fs::read_to_string(&file_path)
-        .with_context(|| format!("Failed to read config from {file_path:?}"))?;
+        .with_context(|| format!("Failed to read config from {}", format_file_reference_simple(&file_path, None, None)))?;
 
     let config: AppConfig = toml::from_str(&contents)
-        .with_context(|| format!("Malformed TOML in config file {file_path:?}"))?;
+        .with_context(|| format!("Malformed TOML in config file {}", format_file_reference_simple(&file_path, None, None)))?;
 
-    info!("Loaded config from {file_path:?}");
+    info!("Loaded config from {}", format_file_reference_simple(&file_path, None, None));
     Ok(config)
 }
 
@@ -110,17 +111,17 @@ pub fn load_devices(path: Option<PathBuf>) -> Result<DevicesConfig> {
     let file_path = path.unwrap_or_else(|| resolve_config_dir().join(DEVICES_FILE));
 
     if !file_path.exists() {
-        warn!("Devices config not found at {file_path:?}; using empty mapping");
+        warn!("Devices config not found at {}; using empty mapping", format_file_reference_simple(&file_path, None, None));
         return Ok(DevicesConfig::default());
     }
 
     let contents = std::fs::read_to_string(&file_path)
-        .with_context(|| format!("Failed to read devices config from {file_path:?}"))?;
+        .with_context(|| format!("Failed to read devices config from {}", format_file_reference_simple(&file_path, None, None)))?;
 
     let devices: DevicesConfig = toml::from_str(&contents)
-        .with_context(|| format!("Malformed TOML in devices file {file_path:?}"))?;
+        .with_context(|| format!("Malformed TOML in devices file {}", format_file_reference_simple(&file_path, None, None)))?;
 
-    info!("Loaded devices config from {file_path:?}");
+    info!("Loaded devices config from {}", format_file_reference_simple(&file_path, None, None));
     Ok(devices)
 }
 
@@ -143,23 +144,24 @@ pub fn load_presence(path: Option<PathBuf>) -> Result<PresenceConfig> {
     // Check for legacy devices.toml and error if found
     if devices_path.exists() {
         return Err(anyhow::anyhow!(
-            "Legacy config format detected: devices.toml is no longer supported. \
+            "Legacy config format detected: {} is no longer supported. \
             Please rename devices.toml to presence.toml and update the format according to the documentation. \
-            See https://github.com/levonk/proximityd for migration instructions."
+            See https://github.com/levonk/proximityd for migration instructions.",
+            format_file_reference_simple(&devices_path, None, None)
         ));
     }
 
     if !file_path.exists() {
-        info!("Presence config not found at {file_path:?}; initializing with defaults");
+        info!("Presence config not found at {}; initializing with defaults", format_file_reference_simple(&file_path, None, None));
         initialize_config(false)?;
         return Ok(PresenceConfig::default());
     }
 
     let contents = std::fs::read_to_string(&file_path)
-        .with_context(|| format!("Failed to read presence config from {file_path:?}"))?;
+        .with_context(|| format!("Failed to read presence config from {}", format_file_reference_simple(&file_path, None, None)))?;
 
     let mut presence: PresenceConfig = toml::from_str(&contents)
-        .with_context(|| format!("Malformed TOML in presence file {file_path:?}"))?;
+        .with_context(|| format!("Malformed TOML in presence file {}", format_file_reference_simple(&file_path, None, None)))?;
 
     // Normalize all identifier values
     for party in &mut presence.parties {
@@ -170,7 +172,7 @@ pub fn load_presence(path: Option<PathBuf>) -> Result<PresenceConfig> {
         }
     }
 
-    info!("Loaded presence config from {file_path:?}");
+    info!("Loaded presence config from {}", format_file_reference_simple(&file_path, None, None));
     Ok(presence)
 }
 

@@ -47,8 +47,8 @@ This index summarizes all stories for implementing CLI standards compliance and 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
 | 06-001 | Implement dry-run mode and confirmation prompts | feature/current/cli-standards/story-06-001-dry-run-confirm | None | Parallel-safe: true | src/main.rs | [x] Done |
-| 06-002 | Add progress indicators and standard exit codes | feature/current/cli-standards/story-06-002-progress-exit-codes | None | Parallel-safe: true | src/main.rs | [~] In-Progress |
-| 06-003 | Implement file reference formatting and terminal size awareness | feature/current/cli-standards/story-06-003-file-ref-terminal | None | Parallel-safe: true | src/main.rs |
+| 06-002 | Add progress indicators and standard exit codes | feature/current/cli-standards/story-06-002-progress-exit-codes | None | Parallel-safe: true | src/main.rs | [x] Done |
+| 06-003 | Implement file reference formatting and terminal size awareness | feature/current/cli-standards/story-06-003-file-ref-terminal | None | Parallel-safe: true | src/main.rs | [~] In-Progress |
 | 06-004 | Add resource limits and input globbing support | feature/current/cli-standards/story-06-004-resource-limits-globbing | None | Parallel-safe: true | src/main.rs |
 
 ### Phase 07: Testing and Documentation
