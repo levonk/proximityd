@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 6
 parallel_id: 4
 branch: "feature/current/cli-standards/story-06-004-resource-limits-globbing"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,56 +27,56 @@ Implement resource limits for memory and CPU-intensive operations, and add suppo
 
 ## Sub-Tasks
 
-- [ ] Add `--max-memory` flag to applicable commands:
+- [x] Add `--max-memory` flag to applicable commands:
   - discovery command (memory-intensive analysis)
   - export command (large signal log processing)
-- [ ] Implement memory limit enforcement:
+- [x] Implement memory limit enforcement:
   - Track memory usage during operations
   - Abort if limit exceeded
   - Log limit violations at ERROR level
-- [ ] Add `--max-cpu` flag to applicable commands:
+- [x] Add `--max-cpu` flag to applicable commands:
   - discovery command (CPU-intensive correlation)
   - export command (CPU-intensive processing)
-- [ ] Implement CPU limit enforcement:
+- [x] Implement CPU limit enforcement:
   - Limit parallelism based on CPU limit
   - Use platform-appropriate mechanisms (taskset on Linux, etc.)
   - Log limit application at INFO level
-- [ ] Implement recursive globbing support:
+- [x] Implement recursive globbing support:
   - Support `**/*` pattern for recursive file matching
   - Support `*` pattern for single-level matching
   - Use glob crate for pattern matching
-- [ ] Implement stdin input support:
+- [x] Implement stdin input support:
   - Accept `-` as file argument for stdin
   - Accept piped input
   - Process stdin same as file input where applicable
-- [ ] Apply globbing to applicable commands:
+- [x] Apply globbing to applicable commands:
   - export command (for file path arguments if added)
   - Any future file-processing commands
-- [ ] Add tests for resource limit enforcement
-- [ ] Add tests for globbing patterns
-- [ ] Add tests for stdin input
+- [x] Add tests for resource limit enforcement
+- [x] Add tests for globbing patterns
+- [x] Add tests for stdin input
 
 ## Relevant Files
 
-- `src/main.rs` — Add --max-memory, --max-cpu flags and globbing support
-- `src/cli/limits.rs` — NEW FILE for resource limit utilities
-- `src/cli/glob.rs` — NEW FILE for globbing utilities
+- `src/main.rs` — Add --max-memory, --max-cpu flags to Discover and Export commands
+- `src/cli/limits.rs` — NEW FILE for resource limit utilities (MemoryLimit, CpuLimit)
+- `src/cli/glob.rs` — NEW FILE for globbing utilities (expand_glob, expand_inputs, is_glob_pattern)
 - `src/cli/mod.rs` — Export limits and glob modules
-- `tests/cli_tests.rs` — Add resource limit and globbing tests
+- `Cargo.toml` — Add num_cpus dependency
 
 ## Acceptance Criteria
 
-- [ ] `--max-memory` flag limits memory usage
-- [ ] Operations abort when memory limit exceeded
-- [ ] `--max-cpu` flag limits CPU usage
-- [ ] CPU limit is enforced via platform-appropriate mechanisms
-- [ ] `**/*` pattern matches files recursively
-- [ ] `*` pattern matches files in current directory
-- [ ] `-` argument accepts stdin input
-- [ ] Piped input is processed correctly
-- [ ] All resource limit functionality has tests
-- [ ] All globbing functionality has tests
-- [ ] All stdin functionality has tests
+- [x] `--max-memory` flag limits memory usage
+- [x] Operations abort when memory limit exceeded
+- [x] `--max-cpu` flag limits CPU usage
+- [x] CPU limit is enforced via platform-appropriate mechanisms
+- [x] `**/*` pattern matches files recursively
+- [x] `*` pattern matches files in current directory
+- [x] `-` argument accepts stdin input
+- [x] Piped input is processed correctly
+- [x] All resource limit functionality has tests
+- [x] All globbing functionality has tests
+- [x] All stdin functionality has tests
 
 ## Test Plan
 

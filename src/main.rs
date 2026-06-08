@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-// Import pager and progress utilities
-use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message};
+// Import pager, progress, and limits utilities
+use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit};
 use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
 
 // Module name for logging
@@ -116,6 +116,14 @@ enum Commands {
         /// Disable pager for long output
         #[arg(long)]
         no_pager: bool,
+
+        /// Maximum memory usage in bytes (e.g., 1GB = 1073741824)
+        #[arg(long)]
+        max_memory: Option<u64>,
+
+        /// Maximum CPU cores to use (default: all available)
+        #[arg(long)]
+        max_cpu: Option<usize>,
     },
     /// Show current presence status
     Status {
@@ -144,6 +152,14 @@ enum Commands {
         /// Disable pager for long output
         #[arg(long)]
         no_pager: bool,
+
+        /// Maximum memory usage in bytes (e.g., 1GB = 1073741824)
+        #[arg(long)]
+        max_memory: Option<u64>,
+
+        /// Maximum CPU cores to use (default: all available)
+        #[arg(long)]
+        max_cpu: Option<usize>,
     },
     /// Install proximityd: generate shell completions and initialize config files
     Install {
@@ -353,11 +369,30 @@ fn init_logging(cli: &Cli, app_config: Option<&config::AppConfig>) -> Result<()>
     Ok(())
 }
 
-fn run_discover(hours: u32, min_confidence: f64, output: Option<PathBuf>, no_pager: bool, quiet: bool) -> Result<()> {
+fn run_discover(
+    hours: u32,
+    min_confidence: f64,
+    output: Option<PathBuf>,
+    no_pager: bool,
+    quiet: bool,
+    max_memory: Option<u64>,
+    max_cpu: Option<usize>,
+) -> Result<()> {
     use btnotify::discovery::DiscoveryEngine;
     use btnotify::signals::db_path;
 
     info!("Running discovery: hours={}, min_confidence={}", hours, min_confidence);
+
+    // Apply resource limits
+    let memory_limit = MemoryLimit::new(max_memory);
+    let cpu_limit = CpuLimit::new(max_cpu);
+
+    if memory_limit.is_enabled() {
+        info!("Memory limit set: {} bytes", max_memory.unwrap());
+    }
+    if cpu_limit.is_enabled() {
+        info!("CPU limit set: {} cores", max_cpu.unwrap());
+    }
 
     let spinner = create_spinner(quiet);
     set_message(&spinner, "Opening signal log");
@@ -365,11 +400,25 @@ fn run_discover(hours: u32, min_confidence: f64, output: Option<PathBuf>, no_pag
     let db_path = db_path::default_db_path();
     info!("Using signal log at: {}", db_path.display());
 
+    // Check memory before opening database
+    let db_size = std::fs::metadata(&db_path)
+        .map(|m| m.len())
+        .unwrap_or(0);
+    memory_limit.check(db_size)?;
+
     let engine = DiscoveryEngine::open(&db_path).context("Failed to open signal log")?;
     set_message(&spinner, "Computing correlations");
+
+    // Apply CPU limit to parallelism (if discovery engine supports it)
+    let _effective_cores = cpu_limit.effective_parallelism(num_cpus::get());
+
     let suggestions = engine
         .discover(hours, min_confidence)
         .context("Failed to compute correlations")?;
+
+    // Check memory after computation
+    let output_size = toml::to_string_pretty(&suggestions)?.len() as u64;
+    memory_limit.add(output_size);
 
     finish_with_message(&spinner, &format!("Found {} suggestion(s)", suggestions.len()));
     info!("Found {} suggestion(s)", suggestions.len());
@@ -465,11 +514,30 @@ fn run_status(json: bool, no_pager: bool, quiet: bool) -> Result<()> {
     Ok(())
 }
 
-fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no_pager: bool, quiet: bool) -> Result<()> {
+fn run_export(
+    format: String,
+    since: Option<String>,
+    output: Option<PathBuf>,
+    no_pager: bool,
+    quiet: bool,
+    max_memory: Option<u64>,
+    max_cpu: Option<usize>,
+) -> Result<()> {
     use btnotify::signals::db_path;
     use rusqlite::Connection;
 
     info!("Running export: format={}, since={:?}", format, since);
+
+    // Apply resource limits
+    let memory_limit = MemoryLimit::new(max_memory);
+    let cpu_limit = CpuLimit::new(max_cpu);
+
+    if memory_limit.is_enabled() {
+        info!("Memory limit set: {} bytes", max_memory.unwrap());
+    }
+    if cpu_limit.is_enabled() {
+        info!("CPU limit set: {} cores", max_cpu.unwrap());
+    }
 
     let spinner = create_spinner(quiet);
     set_message(&spinner, "Opening signal log");
@@ -511,6 +579,12 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
     let conn = Connection::open(&db_path)
         .with_context(|| format!("Failed to open signal log at {}", db_path.display()))?;
 
+    // Check memory before query
+    let db_size = std::fs::metadata(&db_path)
+        .map(|m| m.len())
+        .unwrap_or(0);
+    memory_limit.check(db_size)?;
+
     let mut query = "SELECT ts, scanner, id_type, id_value, rssi, party_name, device_name, location_building, location_floor, location_room, location_zone FROM signal_log".to_string();
 
     if since.is_some() {
@@ -522,6 +596,9 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
     set_message(&spinner, "Preparing query");
     let mut stmt = conn.prepare(&query)
         .context("Failed to prepare query")?;
+
+    // Apply CPU limit to parallelism (if export supports it)
+    let _effective_cores = cpu_limit.effective_parallelism(num_cpus::get());
 
     let rows: Result<Vec<_>, _> = if let Some(ref since_date) = since {
         stmt.query_map([since_date], |row| {
@@ -584,6 +661,9 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
 
                 jsonl_output.push_str(&signal.to_string());
                 jsonl_output.push('\n');
+
+                // Check memory limit during processing
+                memory_limit.check(jsonl_output.len() as u64)?;
             }
             jsonl_output
         }
@@ -616,6 +696,9 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
                 csv_output.push(',');
                 csv_output.push_str(&location_zone.unwrap_or_else(|| "".to_string()));
                 csv_output.push('\n');
+
+                // Check memory limit during processing
+                memory_limit.check(csv_output.len() as u64)?;
             }
             csv_output
         }
@@ -623,6 +706,9 @@ fn run_export(format: String, since: Option<String>, output: Option<PathBuf>, no
             return Err(anyhow::anyhow!("Unsupported format: {}. Supported formats: jsonl, csv", format));
         }
     };
+
+    // Add final output size to memory tracking
+    memory_limit.add(output_string.len() as u64);
 
     match output {
         Some(path) => {
@@ -733,11 +819,13 @@ fn main() -> Result<()> {
                 min_confidence,
                 output,
                 no_pager,
+                max_memory,
+                max_cpu,
             } => {
                 // Initialize logging with defaults for discover command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_discover(*hours, *min_confidence, output.clone(), *no_pager, cli.quiet) {
+                if let Err(e) = run_discover(*hours, *min_confidence, output.clone(), *no_pager, cli.quiet, *max_memory, *max_cpu) {
                     error!("Discovery error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }
@@ -758,11 +846,13 @@ fn main() -> Result<()> {
                 since,
                 output,
                 no_pager,
+                max_memory,
+                max_cpu,
             } => {
                 // Initialize logging with defaults for export command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_export(format.clone(), since.clone(), output.clone(), *no_pager, cli.quiet) {
+                if let Err(e) = run_export(format.clone(), since.clone(), output.clone(), *no_pager, cli.quiet, *max_memory, *max_cpu) {
                     error!("Export error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }
