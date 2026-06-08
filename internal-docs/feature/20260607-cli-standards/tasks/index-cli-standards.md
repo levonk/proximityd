@@ -25,13 +25,13 @@ This index summarizes all stories for implementing CLI standards compliance and 
 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
-| 03-001 | Implement TUI framework and basic structure | feature/current/cli-standards/story-03-001-tui-framework | None | Parallel-safe: false | src/cli/tui | [~] In-Progress |
+| 03-001 | Implement TUI framework and basic structure | feature/current/cli-standards/story-03-001-tui-framework | None | Parallel-safe: false | src/cli/tui | [x] Done |
 
 ### Phase 04: TUI Mode Features
 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
-| 04-001 | Add config section editors to TUI | feature/current/cli-standards/story-04-001-tui-config-editors | 03-001 | Parallel-safe: true | src/cli/tui |
+| 04-001 | Add config section editors to TUI | feature/current/cli-standards/story-04-001-tui-config-editors | 03-001 | Parallel-safe: true | src/cli/tui | [~] In-Progress |
 | 04-002 | Add party/device/identifier management in TUI | feature/current/cli-standards/story-04-002-tui-party-management | 03-001 | Parallel-safe: true | src/cli/tui |
 | 04-003 | Add notifier testing in TUI | feature/current/cli-standards/story-04-003-tui-notifier-testing | 03-001 | Parallel-safe: true | src/cli/tui |
 

@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 4
 parallel_id: 1
 branch: "feature/current/cli-standards/story-04-001-tui-config-editors"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["03-001"]
@@ -27,46 +27,46 @@ Implement TUI screens for editing all configuration sections from config.toml. T
 
 ## Sub-Tasks
 
-- [ ] Implement general settings editor screen:
+- [x] Implement general settings editor screen:
   - Log level selection
   - Log format selection
   - Scan interval settings
   - Debounce settings
   - Privacy mode toggle
-- [ ] Implement scanner settings editor screen:
+- [x] Implement scanner settings editor screen:
   - BLE scanner toggle and interval
   - WiFi ARP scanner toggle and interval
   - Ping sweep scanner toggle and interval
   - mDNS scanner toggle and interval
   - Scanner-specific settings (router IP, SNMP community, etc.)
-- [ ] Implement detection settings editor screen:
+- [x] Implement detection settings editor screen:
   - Exit timeout
   - RSSI threshold
   - Location defaults
-- [ ] Implement discovery settings editor screen:
+- [x] Implement discovery settings editor screen:
   - Use suggestions toggle
   - Auto-promote threshold
   - Confidence threshold
-- [ ] Implement notifier configuration editor screen:
+- [x] Implement notifier configuration editor screen:
   - Discord webhook URL
   - Slack webhook URL
   - Webhook URL and method
   - MQTT broker and topic
   - Notifier-specific settings
-- [ ] Implement form input widgets:
+- [x] Implement form input widgets:
   - Text input fields
   - Number input fields
   - Dropdown/select for enums
   - Toggle switches for booleans
   - Validation for input types
-- [ ] Implement save changes functionality:
+- [x] Implement save changes functionality:
   - Validate all inputs before saving
   - Write changes to config.toml
   - Show success/error feedback
-- [ ] Implement cancel/rollback functionality
-- [ ] Add keyboard shortcuts for common actions (Save: Ctrl+S, Cancel: Esc)
-- [ ] Add input validation with inline error messages
-- [ ] Add tests for config editor screens
+- [x] Implement cancel/rollback functionality
+- [x] Add keyboard shortcuts for common actions (Save: Ctrl+S, Cancel: Esc)
+- [x] Add input validation with inline error messages
+- [x] Add tests for config editor screens
 
 ## Relevant Files
 
@@ -77,17 +77,17 @@ Implement TUI screens for editing all configuration sections from config.toml. T
 
 ## Acceptance Criteria
 
-- [ ] General settings can be viewed and modified in TUI
-- [ ] Scanner settings can be viewed and modified in TUI
-- [ ] Detection settings can be viewed and modified in TUI
-- [ ] Discovery settings can be viewed and modified in TUI
-- [ ] Notifier configurations can be viewed and modified in TUI
-- [ ] All input types work correctly (text, number, select, toggle)
-- [ ] Input validation prevents invalid values
-- [ ] Save writes changes to config.toml correctly
-- [ ] Cancel discards changes correctly
-- [ ] Keyboard shortcuts work as expected
-- [ ] All config editor screens have tests
+- [x] General settings can be viewed and modified in TUI
+- [x] Scanner settings can be viewed and modified in TUI
+- [x] Detection settings can be viewed and modified in TUI
+- [x] Discovery settings can be viewed and modified in TUI
+- [x] Notifier configurations can be viewed and modified in TUI
+- [x] All input types work correctly (text, number, select, toggle)
+- [x] Input validation prevents invalid values
+- [x] Save writes changes to config.toml correctly
+- [x] Cancel discards changes correctly
+- [x] Keyboard shortcuts work as expected
+- [x] All config editor screens have tests
 
 ## Test Plan
 

@@ -16,7 +16,7 @@ const DEVICES_FILE: &str = "devices.toml";
 const PRESENCE_FILE: &str = "presence.toml";
 
 /// Resolve the config directory using XDG conventions with optional override.
-fn resolve_config_dir() -> PathBuf {
+pub fn resolve_config_dir() -> PathBuf {
     if let Ok(dir) = env::var("PROXIMITYD_CONFIG_DIR") {
         PathBuf::from(dir)
     } else {

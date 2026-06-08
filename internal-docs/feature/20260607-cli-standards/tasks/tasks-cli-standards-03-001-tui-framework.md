@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 3
 parallel_id: 1
 branch: "feature/current/cli-standards/story-03-001-tui-framework"
-status: "in_progress"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: []
