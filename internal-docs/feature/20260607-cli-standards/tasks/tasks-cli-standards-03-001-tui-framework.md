@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 3
 parallel_id: 1
 branch: "feature/current/cli-standards/story-03-001-tui-framework"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: []
@@ -27,28 +27,28 @@ Implement the foundational TUI (Terminal User Interface) framework for interacti
 
 ## Sub-Tasks
 
-- [ ] Add TUI library dependency to Cargo.toml (ratatui + crossterm)
-- [ ] Create `src/cli/tui.rs` module
-- [ ] Implement basic TUI application structure:
+- [x] Add TUI library dependency to Cargo.toml (ratatui + crossterm)
+- [x] Create `src/cli/tui.rs` module
+- [x] Implement basic TUI application structure:
   - Terminal initialization and cleanup
   - Event loop for keyboard input
   - Basic rendering loop
   - Error handling for terminal resize
-- [ ] Implement main menu navigation:
+- [x] Implement main menu navigation:
   - Menu items: Config, Parties, Devices, Notifiers, Test, Save, Exit
   - Keyboard navigation (arrow keys, Enter, Esc)
   - Visual selection indicators
-- [ ] Implement basic screen management:
+- [x] Implement basic screen management:
   - Screen stack for navigation
   - Push/pop screens
   - Title bar and status bar
-- [ ] Add `--interactive` / `--tui` flag to main command
-- [ ] Add TUI mode detection and entry point in `src/main.rs`
-- [ ] Implement graceful fallback to text mode on Windows if TUI not supported
-- [ ] Add keyboard shortcut help screen (F1 or ?)
-- [ ] Add basic error handling and user feedback in TUI
-- [ ] Add unit tests for TUI framework (mocked terminal)
-- [ ] Test TUI on Linux and macOS
+- [x] Add `--interactive` / `--tui` flag to main command
+- [x] Add TUI mode detection and entry point in `src/main.rs`
+- [x] Implement graceful fallback to text mode on Windows if TUI not supported
+- [x] Add keyboard shortcut help screen (F1 or ?)
+- [x] Add basic error handling and user feedback in TUI
+- [x] Add unit tests for TUI framework (mocked terminal)
+- [x] Test TUI on Linux and macOS
 
 ## Relevant Files
 
@@ -61,16 +61,16 @@ Implement the foundational TUI (Terminal User Interface) framework for interacti
 
 ## Acceptance Criteria
 
-- [ ] `proximityd --interactive` launches TUI mode
-- [ ] TUI initializes terminal correctly
-- [ ] TUI cleans up terminal on exit
-- [ ] Main menu displays all options
-- [ ] Keyboard navigation works (arrows, Enter, Esc)
-- [ ] Screen navigation works (push/pop)
-- [ ] Help screen displays keyboard shortcuts
-- [ ] TUI handles terminal resize gracefully
-- [ ] TUI falls back gracefully on Windows if needed
-- [ ] All TUI framework code has tests
+- [x] `proximityd --interactive` launches TUI mode
+- [x] TUI initializes terminal correctly
+- [x] TUI cleans up terminal on exit
+- [x] Main menu displays all options
+- [x] Keyboard navigation works (arrows, Enter, Esc)
+- [x] Screen navigation works (push/pop)
+- [x] Help screen displays keyboard shortcuts
+- [x] TUI handles terminal resize gracefully
+- [x] TUI falls back gracefully on Windows if needed
+- [x] All TUI framework code has tests
 
 ## Test Plan
 

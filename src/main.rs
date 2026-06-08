@@ -72,6 +72,10 @@ struct Cli {
     #[arg(long)]
     init_config: bool,
 
+    /// Launch interactive TUI mode for configuration
+    #[arg(long, short = 'i')]
+    interactive: bool,
+
     /// Discover identifier correlations from signal log
     #[command(subcommand)]
     command: Option<Commands>,
@@ -722,6 +726,21 @@ fn main() -> Result<()> {
     };
 
     info!("Starting {}", MODULE_NAME);
+
+    // TUI mode: launch interactive configuration
+    if cli.interactive {
+        info!("Launching TUI mode");
+        if !btnotify::cli::tui::is_tui_supported() {
+            error!("TUI mode is not supported in this environment");
+            error!("Ensure you are running in a terminal with TTY support");
+            std::process::exit(1);
+        }
+        if let Err(e) = btnotify::cli::run_tui() {
+            error!("TUI error: {e}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     #[allow(deprecated)]
     let rssi_threshold = app_config.enter_rssi_threshold_dbm;
     #[allow(deprecated)]

@@ -25,7 +25,7 @@ This index summarizes all stories for implementing CLI standards compliance and 
 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
-| 03-001 | Implement TUI framework and basic structure | feature/current/cli-standards/story-03-001-tui-framework | None | Parallel-safe: false | src/cli/tui |
+| 03-001 | Implement TUI framework and basic structure | feature/current/cli-standards/story-03-001-tui-framework | None | Parallel-safe: false | src/cli/tui | [~] In-Progress |
 
 ### Phase 04: TUI Mode Features
 
