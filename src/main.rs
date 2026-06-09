@@ -13,7 +13,7 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit, detect_mode, is_agent_session, is_tty};
 use btnotify::config::app::Mode;
 use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
-use btnotify::output::{OutputSchema, CommandField, TruncationConfig, truncate_text, PartyAggregate, DeviceAggregate, ListAggregate};
+use btnotify::output::{OutputSchema, CommandField, TruncationConfig, truncate_text, PartyAggregate, DeviceAggregate, ListAggregate, EmptyContext, EmptyFormatter};
 
 // Module name for logging
 const MODULE_NAME: &str = "proximityd";
@@ -70,7 +70,7 @@ static COLORS_ENABLED: Lazy<bool> =
     Lazy::new(|| atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err());
 
 #[derive(Parser)]
-#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nCONTENT TRUNCATION:\n  Large text fields are truncated by default (1000 chars) to reduce token consumption.\n  Use --full flag to disable truncation and show complete content. Truncation applies to\n  device names, locations, and other text fields in both agent and human modes.\n  Configure default limit via config.toml: general.truncation_limit.\n\nExit codes:\n  0   Success\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
+#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nCONTENT TRUNCATION:\n  Large text fields are truncated by default (1000 chars) to reduce token consumption.\n  Use --full flag to disable truncation and show complete content. Truncation applies to\n  device names, locations, and other text fields in both agent and human modes.\n  Configure default limit via config.toml: general.truncation_limit.\n\nEMPTY STATES:\n  When a command returns no results, the CLI outputs a definitive empty state message\n  explicitly stating \"0 results\" with context (scope and any applied filters). Empty queries\n  exit with code 0 (success) to distinguish from errors. Empty state formatting is consistent\n  across all commands (parties, devices, status) and all output formats (human, json, toon).\n\nExit codes:\n  0   Success (including successful empty queries)\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
 struct Cli {
     /// Input files or glob patterns. Use "-" for stdin.
     #[arg(value_name = "INPUTS")]
@@ -624,7 +624,19 @@ fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, qu
     // Get all present devices
     let present = state_table.list_present();
 
-    if json {
+    if present.is_empty() {
+        // Use empty state formatter
+        let context = EmptyContext::new("status", "active devices");
+        let formatter = EmptyFormatter::new(true);
+        
+        if json {
+            let output = formatter.format_json(&context)?;
+            println!("{}", output);
+        } else {
+            let output = formatter.format_human(&context);
+            print!("{}", output);
+        }
+    } else if json {
         // Apply schema to JSON output
         let status_output = StatusOutput {
             daemon_status: "running".to_string(),
@@ -730,7 +742,19 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
     
     let parties = &presence_config.parties;
 
-    if json {
+    if parties.is_empty() {
+        // Use empty state formatter
+        let context = EmptyContext::new("parties", "all configured parties");
+        let formatter = EmptyFormatter::new(true);
+        
+        if json {
+            let output = formatter.format_json(&context)?;
+            println!("{}", output);
+        } else {
+            let output = formatter.format_human(&context);
+            print!("{}", output);
+        }
+    } else if json {
         let list_aggregate = ListAggregate::from_collection(parties);
         
         let party_outputs: Vec<PartyOutput> = parties.iter().map(|party| {
@@ -778,55 +802,51 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
         output.push_str(&format!("Total parties: {}\n", list_aggregate.count_of_total()));
         output.push('\n');
 
-        if parties.is_empty() {
-            output.push_str("No parties configured.");
-        } else {
-            for party in parties {
-                let truncated_name = truncate_text(&party.name, &truncation_config);
-                output.push_str(&format!("Name: {}\n", truncated_name.content));
-                if truncated_name.truncated {
-                    if let Some(suggestion) = truncated_name.help_suggestion() {
-                        output.push_str(&format!("  {}\n", suggestion));
-                    }
+        for party in parties {
+            let truncated_name = truncate_text(&party.name, &truncation_config);
+            output.push_str(&format!("Name: {}\n", truncated_name.content));
+            if truncated_name.truncated {
+                if let Some(suggestion) = truncated_name.help_suggestion() {
+                    output.push_str(&format!("  {}\n", suggestion));
                 }
-                if schema.has_field(CommandField::PartyDeviceCount) {
-                    let device_count = party.devices.len();
-                    output.push_str(&format!("  Devices: {}\n", device_count));
-                    // Add aggregate summary
-                    let agg = PartyAggregate::new(device_count);
-                    if let Some(summary) = agg.device_status_summary {
-                        output.push_str(&format!("  Summary: {}\n", summary));
-                    }
+            }
+            if schema.has_field(CommandField::PartyDeviceCount) {
+                let device_count = party.devices.len();
+                output.push_str(&format!("  Devices: {}\n", device_count));
+                // Add aggregate summary
+                let agg = PartyAggregate::new(device_count);
+                if let Some(summary) = agg.device_status_summary {
+                    output.push_str(&format!("  Summary: {}\n", summary));
                 }
-                if schema.has_field(CommandField::PartyLocation) {
-                    if let Some(location) = &party.location {
-                        let mut loc_parts = Vec::new();
-                        if let Some(building) = &location.building {
-                            loc_parts.push(building.clone());
-                        }
-                        if let Some(floor) = location.floor {
-                            loc_parts.push(format!("Floor {}", floor));
-                        }
-                        if let Some(room) = &location.room {
-                            loc_parts.push(room.clone());
-                        }
-                        if let Some(zone) = &location.zone {
-                            loc_parts.push(zone.clone());
-                        }
-                        if !loc_parts.is_empty() {
-                            let location_str = loc_parts.join(", ");
-                            let truncated_location = truncate_text(&location_str, &truncation_config);
-                            output.push_str(&format!("  Location: {}\n", truncated_location.content));
-                            if truncated_location.truncated {
-                                if let Some(suggestion) = truncated_location.help_suggestion() {
-                                    output.push_str(&format!("  {}\n", suggestion));
-                                }
+            }
+            if schema.has_field(CommandField::PartyLocation) {
+                if let Some(location) = &party.location {
+                    let mut loc_parts = Vec::new();
+                    if let Some(building) = &location.building {
+                        loc_parts.push(building.clone());
+                    }
+                    if let Some(floor) = location.floor {
+                        loc_parts.push(format!("Floor {}", floor));
+                    }
+                    if let Some(room) = &location.room {
+                        loc_parts.push(room.clone());
+                    }
+                    if let Some(zone) = &location.zone {
+                        loc_parts.push(zone.clone());
+                    }
+                    if !loc_parts.is_empty() {
+                        let location_str = loc_parts.join(", ");
+                        let truncated_location = truncate_text(&location_str, &truncation_config);
+                        output.push_str(&format!("  Location: {}\n", truncated_location.content));
+                        if truncated_location.truncated {
+                            if let Some(suggestion) = truncated_location.help_suggestion() {
+                                output.push_str(&format!("  {}\n", suggestion));
                             }
                         }
                     }
                 }
-                output.push('\n');
             }
+            output.push('\n');
         }
 
         if should_page_output(&output, no_pager, quiet) {
@@ -872,7 +892,19 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
         }
     }
 
-    if json {
+    if all_devices.is_empty() {
+        // Use empty state formatter
+        let context = EmptyContext::new("devices", "all configured devices");
+        let formatter = EmptyFormatter::new(true);
+        
+        if json {
+            let output = formatter.format_json(&context)?;
+            println!("{}", output);
+        } else {
+            let output = formatter.format_human(&context);
+            print!("{}", output);
+        }
+    } else if json {
         let list_aggregate = ListAggregate::from_collection(&all_devices);
         
         let device_outputs: Vec<DeviceOutput> = all_devices.iter().map(|(_, device)| {
@@ -921,59 +953,55 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
         output.push_str(&format!("Total devices: {}\n", list_aggregate.count_of_total()));
         output.push('\n');
 
-        if all_devices.is_empty() {
-            output.push_str("No devices configured.");
-        } else {
-            for (party, device) in all_devices {
-                let truncated_name = truncate_text(&device.name, &truncation_config);
-                output.push_str(&format!("Name: {}\n", truncated_name.content));
-                if truncated_name.truncated {
-                    if let Some(suggestion) = truncated_name.help_suggestion() {
-                        output.push_str(&format!("  {}\n", suggestion));
+        for (party, device) in all_devices {
+            let truncated_name = truncate_text(&device.name, &truncation_config);
+            output.push_str(&format!("Name: {}\n", truncated_name.content));
+            if truncated_name.truncated {
+                if let Some(suggestion) = truncated_name.help_suggestion() {
+                    output.push_str(&format!("  {}\n", suggestion));
+                }
+            }
+            if schema.has_field(CommandField::DeviceIdentifierCount) {
+                let identifier_count = device.identifiers.len();
+                output.push_str(&format!("  Identifiers: {}\n", identifier_count));
+                // Add aggregate summary
+                let agg = DeviceAggregate::new(identifier_count);
+                if let Some(summary) = agg.identifier_status_summary {
+                    output.push_str(&format!("  Summary: {}\n", summary));
+                }
+            }
+            if schema.has_field(CommandField::DeviceStatus) {
+                output.push_str("  Status: configured\n");
+            }
+            if schema.has_field(CommandField::DeviceLocation) {
+                let location = device.location.as_ref().or(party.location.as_ref());
+                if let Some(loc) = location {
+                    let mut loc_parts = Vec::new();
+                    if let Some(building) = &loc.building {
+                        loc_parts.push(building.clone());
                     }
-                }
-                if schema.has_field(CommandField::DeviceIdentifierCount) {
-                    let identifier_count = device.identifiers.len();
-                    output.push_str(&format!("  Identifiers: {}\n", identifier_count));
-                    // Add aggregate summary
-                    let agg = DeviceAggregate::new(identifier_count);
-                    if let Some(summary) = agg.identifier_status_summary {
-                        output.push_str(&format!("  Summary: {}\n", summary));
+                    if let Some(floor) = loc.floor {
+                        loc_parts.push(format!("Floor {}", floor));
                     }
-                }
-                if schema.has_field(CommandField::DeviceStatus) {
-                    output.push_str("  Status: configured\n");
-                }
-                if schema.has_field(CommandField::DeviceLocation) {
-                    let location = device.location.as_ref().or(party.location.as_ref());
-                    if let Some(loc) = location {
-                        let mut loc_parts = Vec::new();
-                        if let Some(building) = &loc.building {
-                            loc_parts.push(building.clone());
-                        }
-                        if let Some(floor) = loc.floor {
-                            loc_parts.push(format!("Floor {}", floor));
-                        }
-                        if let Some(room) = &loc.room {
-                            loc_parts.push(room.clone());
-                        }
-                        if let Some(zone) = &loc.zone {
-                            loc_parts.push(zone.clone());
-                        }
-                        if !loc_parts.is_empty() {
-                            let location_str = loc_parts.join(", ");
-                            let truncated_location = truncate_text(&location_str, &truncation_config);
-                            output.push_str(&format!("  Location: {}\n", truncated_location.content));
-                            if truncated_location.truncated {
-                                if let Some(suggestion) = truncated_location.help_suggestion() {
-                                    output.push_str(&format!("  {}\n", suggestion));
-                                }
+                    if let Some(room) = &loc.room {
+                        loc_parts.push(room.clone());
+                    }
+                    if let Some(zone) = &loc.zone {
+                        loc_parts.push(zone.clone());
+                    }
+                    if !loc_parts.is_empty() {
+                        let location_str = loc_parts.join(", ");
+                        let truncated_location = truncate_text(&location_str, &truncation_config);
+                        output.push_str(&format!("  Location: {}\n", truncated_location.content));
+                        if truncated_location.truncated {
+                            if let Some(suggestion) = truncated_location.help_suggestion() {
+                                output.push_str(&format!("  {}\n", suggestion));
                             }
                         }
                     }
                 }
-                output.push('\n');
             }
+            output.push('\n');
         }
 
         if should_page_output(&output, no_pager, quiet) {

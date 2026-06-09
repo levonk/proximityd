@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 2
 parallel_id: 3
 branch: "feature/current/cli-axi/story-02-003-definitive-empty-states"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["01-003"]
@@ -27,16 +27,16 @@ Implement definitive empty states that explicitly state when a query has no resu
 
 ## Sub-Tasks
 
-- [ ] Detect empty result sets across all commands (parties, devices, signal logs)
-- [ ] Format empty states with explicit "0 results" message
-- [ ] Include context in empty state messages (filter criteria, scope)
-- [ ] Ensure exit code 0 for successful empty queries
-- [ ] Apply consistent empty state formatting across commands
-- [ ] Add empty state tests for all commands
-- [ ] Update parties list empty state format
-- [ ] Update devices list empty state format
-- [ ] Update status command empty state format
-- [ ] Update CLI help text to document empty state behavior
+- [x] Detect empty result sets across all commands (parties, devices, signal logs)
+- [x] Format empty states with explicit "0 results" message
+- [x] Include context in empty state messages (filter criteria, scope)
+- [x] Ensure exit code 0 for successful empty queries
+- [x] Apply consistent empty state formatting across commands
+- [x] Update parties list empty state format
+- [x] Update devices list empty state format
+- [x] Update status command empty state format
+- [x] Add empty state tests for all commands
+- [x] Update CLI help text to document empty state behavior
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 
@@ -50,12 +50,12 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Acceptance Criteria
 
-- [ ] Empty states explicitly state "0 results"
-- [ ] Empty states include context (filter criteria, scope)
-- [ ] Exit code 0 for successful empty queries
-- [ ] Empty state formatting is consistent
-- [ ] All commands have proper empty states
-- [ ] Empty states work with both TOON and JSON
+- [x] Empty states explicitly state "0 results"
+- [x] Empty states include context (filter criteria, scope)
+- [x] Exit code 0 for successful empty queries
+- [x] Empty state formatting is consistent
+- [x] All commands have proper empty states
+- [x] Empty states work with both TOON and JSON
 
 ## Test Plan
 
