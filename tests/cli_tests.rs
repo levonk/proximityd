@@ -64,7 +64,7 @@ fn test_nocolor() {
 #[test]
 fn test_no_args() {
     let mut cmd = Command::cargo_bin("proximityd").unwrap();
-    cmd.assert().failure(); // Should fail as TTY stdin is empty
+    cmd.assert().success(); // Now shows content-first behavior with suggestions
 }
 
 #[test]

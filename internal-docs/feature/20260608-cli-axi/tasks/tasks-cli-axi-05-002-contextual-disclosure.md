@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 5
 parallel_id: 2
 branch: "feature/current/cli-axi/story-05-002-contextual-disclosure"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["01-003", "02-002"]
@@ -27,16 +27,16 @@ Implement contextual disclosure with next step suggestions. Include 2-4 relevant
 
 ## Sub-Tasks
 
-- [ ] Implement suggestion engine for each command
-- [ ] Generate contextual help based on current state and output
-- [ ] Format suggestions as structured help[] array in TOON
-- [ ] Include suggestions in all command outputs
-- [ ] Make suggestions context-aware (not generic)
-- [ ] Limit to 2-4 suggestions maximum
-- [ ] Rank suggestions by relevance
-- [ ] Ensure suggestions are complete commands with flags
-- [ ] Add suggestion tests for various contexts
-- [ ] Update CLI help text to document suggestion behavior
+- [x] Implement suggestion engine for each command
+- [x] Generate contextual help based on current state and output
+- [x] Format suggestions as structured help[] array in TOON
+- [x] Include suggestions in all command outputs
+- [x] Make suggestions context-aware (not generic)
+- [x] Limit to 2-4 suggestions maximum
+- [x] Rank suggestions by relevance
+- [x] Ensure suggestions are complete commands with flags
+- [x] Add suggestion tests for various contexts
+- [~] Update CLI help text to document suggestion behavior
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 

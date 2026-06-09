@@ -13,7 +13,7 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit, detect_mode, is_agent_session, is_tty, detect_noargs_context, generate_noargs_summary, format_noargs_human, format_noargs_toon};
 use btnotify::config::app::Mode;
 use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
-use btnotify::output::{OutputSchema, CommandField, TruncationConfig, truncate_text, PartyAggregate, DeviceAggregate, ListAggregate, EmptyContext, EmptyFormatter};
+use btnotify::output::{OutputSchema, CommandField, TruncationConfig, truncate_text, PartyAggregate, DeviceAggregate, ListAggregate, EmptyContext, EmptyFormatter, SuggestionEngine, SuggestionContext, format_suggestions_toon, format_suggestions_human};
 
 // Module name for logging
 const MODULE_NAME: &str = "proximityd";
@@ -70,7 +70,7 @@ static COLORS_ENABLED: Lazy<bool> =
     Lazy::new(|| atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err());
 
 #[derive(Parser)]
-#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nCONTENT TRUNCATION:\n  Large text fields are truncated by default (1000 chars) to reduce token consumption.\n  Use --full flag to disable truncation and show complete content. Truncation applies to\n  device names, locations, and other text fields in both agent and human modes.\n  Configure default limit via config.toml: general.truncation_limit.\n\nEMPTY STATES:\n  When a command returns no results, the CLI outputs a definitive empty state message\n  explicitly stating \"0 results\" with context (scope and any applied filters). Empty queries\n  exit with code 0 (success) to distinguish from errors. Empty state formatting is consistent\n  across all commands (parties, devices, status) and all output formats (human, json, toon).\n\nSESSION HOOKS:\n  The CLI supports session hooks for ambient context injection with AI agents.\n  Use 'proximityd hooks session-context' to output compact state in TOON format.\n  Use 'proximityd hooks install-agent-hooks' to register hooks with Claude Code or Codex.\n  Hooks provide directory-scoped context, git repository info, and configuration summary.\n\nExit codes:\n  0   Success (including successful empty queries)\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
+#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nCONTENT TRUNCATION:\n  Large text fields are truncated by default (1000 chars) to reduce token consumption.\n  Use --full flag to disable truncation and show complete content. Truncation applies to\n  device names, locations, and other text fields in both agent and human modes.\n  Configure default limit via config.toml: general.truncation_limit.\n\nEMPTY STATES:\n  When a command returns no results, the CLI outputs a definitive empty state message\n  explicitly stating \"0 results\" with context (scope and any applied filters). Empty queries\n  exit with code 0 (success) to distinguish from errors. Empty state formatting is consistent\n  across all commands (parties, devices, status) and all output formats (human, json, toon).\n\nCONTEXTUAL SUGGESTIONS:\n  The CLI provides contextual next-step suggestions after each command output to enable\n  organic CLI discovery. Suggestions are ranked by relevance, limited to 2-4 items, and include\n  complete commands with flags. In JSON/TOON format, suggestions appear as a structured help[] array.\n  In human format, suggestions appear as a \"Next steps:\" section. Suggestions are context-aware\n  based on current command, result count, and output state.\n\nSESSION HOOKS:\n  The CLI supports session hooks for ambient context injection with AI agents.\n  Use 'proximityd hooks session-context' to output compact state in TOON format.\n  Use 'proximityd hooks install-agent-hooks' to register hooks with Claude Code or Codex.\n  Hooks provide directory-scoped context, git repository info, and configuration summary.\n\nExit codes:\n  0   Success (including successful empty queries)\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
 struct Cli {
     /// Input files or glob patterns. Use "-" for stdin.
     #[arg(value_name = "INPUTS")]
@@ -615,18 +615,24 @@ fn run_discover(
     let toml_output = toml::to_string_pretty(&suggestions)
         .context("Failed to serialize suggestions to TOML")?;
 
+    let suggestion_engine = SuggestionEngine::new();
+    let suggestion_context = SuggestionContext::new("discover", suggestions.is_empty(), suggestions.len(), "human", false, "human");
+    let next_suggestions = suggestion_engine.generate(&suggestion_context);
+    let suggestions_output = format_suggestions_human(&next_suggestions);
+    let output_with_suggestions = format!("{}\n{}", toml_output, suggestions_output);
+
     match output {
         Some(path) => {
-            std::fs::write(&path, toml_output)
+            std::fs::write(&path, output_with_suggestions)
                 .with_context(|| format!("Failed to write suggestions to {}", path.display()))?;
             info!("Suggestions written to {}", path.display());
         }
         None => {
-            if should_page_output(&toml_output, no_pager, quiet) {
+            if should_page_output(&output_with_suggestions, no_pager, quiet) {
                 debug!("Paging output through pager");
-                page_output(&toml_output)?;
+                page_output(&output_with_suggestions)?;
             } else {
-                println!("{}", toml_output);
+                print!("{}", output_with_suggestions);
             }
         }
     }
@@ -661,6 +667,7 @@ fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, qu
 
     // Get all present devices
     let present = state_table.list_present();
+    let present_count = present.len();
 
     if present.is_empty() {
         // Use empty state formatter
@@ -673,6 +680,20 @@ fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, qu
         } else {
             let output = formatter.format_human(&context);
             print!("{}", output);
+        }
+        
+        // Add suggestions even for empty results
+        let suggestion_engine = SuggestionEngine::new();
+        let output_format_str = if json { "json" } else { "human" };
+        let suggestion_context = SuggestionContext::new("status", true, present_count, output_format_str, false, "agent");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        
+        if json {
+            let suggestions_output = format_suggestions_toon(&suggestions);
+            println!("{}", serde_json::to_string_pretty(&suggestions_output)?);
+        } else {
+            let suggestions_output = format_suggestions_human(&suggestions);
+            print!("{}", suggestions_output);
         }
     } else if json {
         // Apply schema to JSON output
@@ -688,7 +709,18 @@ fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, qu
         
         let output = serde_json::to_string_pretty(&status_output)
             .context("Failed to serialize status to JSON")?;
-        println!("{}", output);
+        
+        // Add suggestions
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("status", false, present_count, "json", false, "agent");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        let suggestions_output = format_suggestions_toon(&suggestions);
+        
+        let mut output_with_suggestions = output;
+        output_with_suggestions.push_str("\n// Suggestions\n");
+        output_with_suggestions.push_str(&serde_json::to_string_pretty(&suggestions_output)?);
+        
+        println!("{}", output_with_suggestions);
     } else {
         let mut output = String::new();
         output.push_str("Presence Status\n");
@@ -713,7 +745,7 @@ fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, qu
             output.push_str(&str::repeat("-", 85));
             output.push('\n');
 
-            for device in present {
+            for device in &present {
                 let name = if device.name.is_empty() {
                     device.mac.clone()
                 } else {
@@ -741,6 +773,13 @@ fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, qu
                 output.push_str(&format!("{:<20} {:<20} {:<10} {:<15} {:<10}\n", name, device.mac, state_str, last_seen, device.rssi));
             }
         }
+
+        // Add suggestions for human output
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("status", false, present.len(), "human", false, "human");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        let suggestions_output = format_suggestions_human(&suggestions);
+        output.push_str(&suggestions_output);
 
         if should_page_output(&output, no_pager, quiet) {
             debug!("Paging output through pager");
@@ -792,6 +831,19 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
             let output = formatter.format_human(&context);
             print!("{}", output);
         }
+        
+        // Add suggestions even for empty results
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("parties", true, 0, "json", false, "agent");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        
+        if json {
+            let suggestions_output = format_suggestions_toon(&suggestions);
+            println!("{}", serde_json::to_string_pretty(&suggestions_output)?);
+        } else {
+            let suggestions_output = format_suggestions_human(&suggestions);
+            print!("{}", suggestions_output);
+        }
     } else if json {
         let list_aggregate = ListAggregate::from_collection(parties);
         
@@ -829,6 +881,14 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
             .context("Failed to serialize aggregate metadata")?;
         output_with_agg.push_str("\n// Aggregate metadata\n");
         output_with_agg.push_str(&agg_json);
+        
+        // Add suggestions
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("parties", false, parties.len(), "json", false, "agent");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        let suggestions_output = format_suggestions_toon(&suggestions);
+        output_with_agg.push_str("\n// Suggestions\n");
+        output_with_agg.push_str(&serde_json::to_string_pretty(&suggestions_output)?);
         
         println!("{}", output_with_agg);
     } else {
@@ -887,6 +947,13 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
             output.push('\n');
         }
 
+        // Add suggestions for human output
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("parties", false, parties.len(), "human", false, "human");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        let suggestions_output = format_suggestions_human(&suggestions);
+        output.push_str(&suggestions_output);
+
         if should_page_output(&output, no_pager, quiet) {
             debug!("Paging output through pager");
             page_output(&output)?;
@@ -929,6 +996,8 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
             all_devices.push((party, device));
         }
     }
+    
+    let all_devices_count = all_devices.len();
 
     if all_devices.is_empty() {
         // Use empty state formatter
@@ -941,6 +1010,19 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
         } else {
             let output = formatter.format_human(&context);
             print!("{}", output);
+        }
+        
+        // Add suggestions even for empty results
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("devices", true, all_devices_count, "json", false, "agent");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        
+        if json {
+            let suggestions_output = format_suggestions_toon(&suggestions);
+            println!("{}", serde_json::to_string_pretty(&suggestions_output)?);
+        } else {
+            let suggestions_output = format_suggestions_human(&suggestions);
+            print!("{}", suggestions_output);
         }
     } else if json {
         let list_aggregate = ListAggregate::from_collection(&all_devices);
@@ -981,6 +1063,14 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
         output_with_agg.push_str("\n// Aggregate metadata\n");
         output_with_agg.push_str(&agg_json);
         
+        // Add suggestions
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("devices", false, all_devices_count, "json", false, "agent");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        let suggestions_output = format_suggestions_toon(&suggestions);
+        output_with_agg.push_str("\n// Suggestions\n");
+        output_with_agg.push_str(&serde_json::to_string_pretty(&suggestions_output)?);
+        
         println!("{}", output_with_agg);
     } else {
         let list_aggregate = ListAggregate::from_collection(&all_devices);
@@ -991,7 +1081,7 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
         output.push_str(&format!("Total devices: {}\n", list_aggregate.count_of_total()));
         output.push('\n');
 
-        for (party, device) in all_devices {
+        for (party, device) in &all_devices {
             let truncated_name = truncate_text(&device.name, &truncation_config);
             output.push_str(&format!("Name: {}\n", truncated_name.content));
             if truncated_name.truncated {
@@ -1041,6 +1131,13 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
             }
             output.push('\n');
         }
+
+        // Add suggestions for human output
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("devices", false, all_devices_count, "human", false, "human");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        let suggestions_output = format_suggestions_human(&suggestions);
+        output.push_str(&suggestions_output);
 
         if should_page_output(&output, no_pager, quiet) {
             debug!("Paging output through pager");
@@ -1098,18 +1195,25 @@ fn run_export(
             }
         };
 
+        // Add suggestions even for empty results
+        let suggestion_engine = SuggestionEngine::new();
+        let suggestion_context = SuggestionContext::new("export", true, 0, "human", false, "human");
+        let suggestions = suggestion_engine.generate(&suggestion_context);
+        let suggestions_output = format_suggestions_human(&suggestions);
+        let output_with_suggestions = format!("{}\n{}", output_string, suggestions_output);
+
         match output {
             Some(path) => {
-                std::fs::write(&path, output_string)
+                std::fs::write(&path, output_with_suggestions)
                     .with_context(|| format!("Failed to write export to {}", path.display()))?;
                 info!("Export written to {}", path.display());
             }
             None => {
-                if should_page_output(&output_string, no_pager, quiet) {
+                if should_page_output(&output_with_suggestions, no_pager, quiet) {
                     debug!("Paging output through pager");
-                    page_output(&output_string)?;
+                    page_output(&output_with_suggestions)?;
                 } else {
-                    print!("{}", output_string);
+                    print!("{}", output_with_suggestions);
                 }
             }
         }
@@ -1176,12 +1280,13 @@ fn run_export(
     };
 
     let rows = rows.context("Failed to execute query")?;
-    set_message(&spinner, &format!("Processing {} rows", rows.len()));
+    let rows_count = rows.len();
+    set_message(&spinner, &format!("Processing {} rows", rows_count));
 
     let output_string = match format.as_str() {
         "jsonl" => {
             let mut jsonl_output = String::new();
-            for row in rows {
+            for row in &rows {
                 let (ts, scanner, id_type, id_value, rssi, party_name, device_name, location_building, location_floor, location_room, location_zone) = row;
 
                 let signal = serde_json::json!({
@@ -1212,30 +1317,30 @@ fn run_export(
             let mut csv_output = String::new();
             csv_output.push_str("ts,scanner,id_type,id_value,rssi,party_name,device_name,location_building,location_floor,location_room,location_zone\n");
 
-            for row in rows {
+            for row in &rows {
                 let (ts, scanner, id_type, id_value, rssi, party_name, device_name, location_building, location_floor, location_room, location_zone) = row;
 
-                csv_output.push_str(&ts);
+                csv_output.push_str(ts);
                 csv_output.push(',');
-                csv_output.push_str(&scanner);
+                csv_output.push_str(scanner);
                 csv_output.push(',');
-                csv_output.push_str(&id_type);
+                csv_output.push_str(id_type);
                 csv_output.push(',');
-                csv_output.push_str(&id_value);
+                csv_output.push_str(id_value);
                 csv_output.push(',');
-                csv_output.push_str(&rssi.map(|r| r.to_string()).unwrap_or_else(|| "".to_string()));
+                csv_output.push_str(rssi.map(|r| r.to_string()).as_deref().unwrap_or(""));
                 csv_output.push(',');
-                csv_output.push_str(&party_name.unwrap_or_else(|| "".to_string()));
+                csv_output.push_str(party_name.as_deref().unwrap_or(""));
                 csv_output.push(',');
-                csv_output.push_str(&device_name.unwrap_or_else(|| "".to_string()));
+                csv_output.push_str(device_name.as_deref().unwrap_or(""));
                 csv_output.push(',');
-                csv_output.push_str(&location_building.unwrap_or_else(|| "".to_string()));
+                csv_output.push_str(location_building.as_deref().unwrap_or(""));
                 csv_output.push(',');
-                csv_output.push_str(&location_floor.map(|f| f.to_string()).unwrap_or_else(|| "".to_string()));
+                csv_output.push_str(location_floor.map(|f| f.to_string()).as_deref().unwrap_or(""));
                 csv_output.push(',');
-                csv_output.push_str(&location_room.unwrap_or_else(|| "".to_string()));
+                csv_output.push_str(location_room.as_deref().unwrap_or(""));
                 csv_output.push(',');
-                csv_output.push_str(&location_zone.unwrap_or_else(|| "".to_string()));
+                csv_output.push_str(location_zone.as_deref().unwrap_or(""));
                 csv_output.push('\n');
 
                 // Check memory limit during processing
@@ -1251,20 +1356,27 @@ fn run_export(
     // Add final output size to memory tracking
     memory_limit.add(output_string.len() as u64);
 
+    // Add suggestions for human output
+    let suggestion_engine = SuggestionEngine::new();
+    let suggestion_context = SuggestionContext::new("export", false, rows_count, "human", false, "human");
+    let suggestions = suggestion_engine.generate(&suggestion_context);
+    let suggestions_output = format_suggestions_human(&suggestions);
+    let output_with_suggestions = format!("{}\n{}", output_string, suggestions_output);
+
     match output {
         Some(path) => {
             set_message(&spinner, &format!("Writing export to {}", path.display()));
-            std::fs::write(&path, output_string)
+            std::fs::write(&path, output_with_suggestions)
                 .with_context(|| format!("Failed to write export to {}", path.display()))?;
             finish_with_message(&spinner, &format!("Export written to {}", path.display()));
             info!("Export written to {}", path.display());
         }
         None => {
-            if should_page_output(&output_string, no_pager, quiet) {
+            if should_page_output(&output_with_suggestions, no_pager, quiet) {
                 debug!("Paging output through pager");
-                page_output(&output_string)?;
+                page_output(&output_with_suggestions)?;
             } else {
-                print!("{}", output_string);
+                print!("{}", output_with_suggestions);
             }
         }
     }
