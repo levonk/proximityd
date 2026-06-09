@@ -13,7 +13,7 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit, detect_mode, is_agent_session, is_tty};
 use btnotify::config::app::Mode;
 use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
-use btnotify::output::{OutputSchema, CommandField, TruncationConfig, truncate_text};
+use btnotify::output::{OutputSchema, CommandField, TruncationConfig, truncate_text, PartyAggregate, DeviceAggregate, ListAggregate};
 
 // Module name for logging
 const MODULE_NAME: &str = "proximityd";
@@ -224,7 +224,7 @@ enum Commands {
         #[arg(long)]
         no_pager: bool,
     },
-    /// List configured parties
+    /// List configured parties (includes device count aggregates)
     Parties {
         /// Output as JSON
         #[arg(long)]
@@ -242,7 +242,7 @@ enum Commands {
         #[arg(long)]
         no_pager: bool,
     },
-    /// List configured devices
+    /// List configured devices (includes identifier count aggregates)
     Devices {
         /// Output as JSON
         #[arg(long)]
@@ -731,10 +731,13 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
     let parties = &presence_config.parties;
 
     if json {
+        let list_aggregate = ListAggregate::from_collection(parties);
+        
         let party_outputs: Vec<PartyOutput> = parties.iter().map(|party| {
+            let device_count = party.devices.len();
             PartyOutput {
                 name: truncate_text(&party.name, &truncation_config).content,
-                device_count: party.devices.len(),
+                device_count,
                 location: party.location.as_ref().map(|loc| {
                     let mut parts = Vec::new();
                     if let Some(building) = &loc.building {
@@ -752,17 +755,28 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
                     let location_str = parts.join(", ");
                     truncate_text(&location_str, &truncation_config).content
                 }),
+                aggregate: Some(PartyAggregate::new(device_count)),
             }
         }).collect();
 
-        let output = serde_json::to_string_pretty(&party_outputs)
+        let mut output_with_agg = serde_json::to_string_pretty(&party_outputs)
             .context("Failed to serialize parties to JSON")?;
-        println!("{}", output);
+        
+        // Add aggregate metadata at the end
+        let agg_json = serde_json::to_string_pretty(&list_aggregate)
+            .context("Failed to serialize aggregate metadata")?;
+        output_with_agg.push_str("\n// Aggregate metadata\n");
+        output_with_agg.push_str(&agg_json);
+        
+        println!("{}", output_with_agg);
     } else {
+        let list_aggregate = ListAggregate::from_collection(parties);
+        
         let mut output = String::new();
         output.push_str("Configured Parties\n");
         output.push_str("==================\n");
-        output.push_str(&format!("Total parties: {}\n\n", parties.len()));
+        output.push_str(&format!("Total parties: {}\n", list_aggregate.count_of_total()));
+        output.push('\n');
 
         if parties.is_empty() {
             output.push_str("No parties configured.");
@@ -776,7 +790,13 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
                     }
                 }
                 if schema.has_field(CommandField::PartyDeviceCount) {
-                    output.push_str(&format!("  Devices: {}\n", party.devices.len()));
+                    let device_count = party.devices.len();
+                    output.push_str(&format!("  Devices: {}\n", device_count));
+                    // Add aggregate summary
+                    let agg = PartyAggregate::new(device_count);
+                    if let Some(summary) = agg.device_status_summary {
+                        output.push_str(&format!("  Summary: {}\n", summary));
+                    }
                 }
                 if schema.has_field(CommandField::PartyLocation) {
                     if let Some(location) = &party.location {
@@ -853,10 +873,13 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
     }
 
     if json {
+        let list_aggregate = ListAggregate::from_collection(&all_devices);
+        
         let device_outputs: Vec<DeviceOutput> = all_devices.iter().map(|(_, device)| {
+            let identifier_count = device.identifiers.len();
             DeviceOutput {
                 name: truncate_text(&device.name, &truncation_config).content,
-                identifier_count: device.identifiers.len(),
+                identifier_count,
                 status: "configured".to_string(),
                 location: device.location.as_ref().map(|loc| {
                     let mut parts = Vec::new();
@@ -875,17 +898,28 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
                     let location_str = parts.join(", ");
                     truncate_text(&location_str, &truncation_config).content
                 }),
+                aggregate: Some(DeviceAggregate::new(identifier_count)),
             }
         }).collect();
 
-        let output = serde_json::to_string_pretty(&device_outputs)
+        let mut output_with_agg = serde_json::to_string_pretty(&device_outputs)
             .context("Failed to serialize devices to JSON")?;
-        println!("{}", output);
+        
+        // Add aggregate metadata at the end
+        let agg_json = serde_json::to_string_pretty(&list_aggregate)
+            .context("Failed to serialize aggregate metadata")?;
+        output_with_agg.push_str("\n// Aggregate metadata\n");
+        output_with_agg.push_str(&agg_json);
+        
+        println!("{}", output_with_agg);
     } else {
+        let list_aggregate = ListAggregate::from_collection(&all_devices);
+        
         let mut output = String::new();
         output.push_str("Configured Devices\n");
         output.push_str("==================\n");
-        output.push_str(&format!("Total devices: {}\n\n", all_devices.len()));
+        output.push_str(&format!("Total devices: {}\n", list_aggregate.count_of_total()));
+        output.push('\n');
 
         if all_devices.is_empty() {
             output.push_str("No devices configured.");
@@ -899,7 +933,13 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
                     }
                 }
                 if schema.has_field(CommandField::DeviceIdentifierCount) {
-                    output.push_str(&format!("  Identifiers: {}\n", device.identifiers.len()));
+                    let identifier_count = device.identifiers.len();
+                    output.push_str(&format!("  Identifiers: {}\n", identifier_count));
+                    // Add aggregate summary
+                    let agg = DeviceAggregate::new(identifier_count);
+                    if let Some(summary) = agg.identifier_status_summary {
+                        output.push_str(&format!("  Summary: {}\n", summary));
+                    }
                 }
                 if schema.has_field(CommandField::DeviceStatus) {
                     output.push_str("  Status: configured\n");

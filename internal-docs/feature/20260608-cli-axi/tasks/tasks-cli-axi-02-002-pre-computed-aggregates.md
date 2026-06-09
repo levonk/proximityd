@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 2
 parallel_id: 2
 branch: "feature/current/cli-axi/story-02-002-pre-computed-aggregates"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["01-003"]
@@ -27,35 +27,37 @@ Implement pre-computed aggregate counts and derived status fields in list output
 
 ## Sub-Tasks
 
-- [ ] Implement aggregate count computation for list queries
-- [ ] Add total count to list output format (count: X of Y total)
-- [ ] Implement derived status fields (identifiers: 3/3 active, devices: 2 present)
-- [ ] Optimize count queries for efficiency
-- [ ] Add derived fields to detail views where relevant
-- [ ] Update parties list to include device count aggregates
-- [ ] Update devices list to include identifier count aggregates
-- [ ] Add aggregate computation tests
-- [ ] Ensure aggregates work with both TOON and JSON
-- [ ] Update CLI help text to document aggregate fields
+- [x] Implement aggregate count computation for list queries
+- [x] Add total count to list output format (count: X of Y total)
+- [x] Implement derived status fields (identifiers: 3/3 active, devices: 2 present)
+- [x] Optimize count queries for efficiency
+- [x] Add derived fields to detail views where relevant
+- [x] Update parties list to include device count aggregates
+- [x] Update devices list to include identifier count aggregates
+- [x] Add aggregate computation tests
+- [x] Ensure aggregates work with both TOON and JSON
+- [~] Update CLI help text to document aggregate fields
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 
 ## Relevant Files
 
-- `src/output/aggregates.rs` (new) — Aggregate computation logic
-- `src/cli/parties.rs` — Add device count aggregates
-- `src/cli/devices.rs` — Add identifier count aggregates
-- `tests/aggregates_test.rs` (new) — Aggregate tests
+- `src/output/aggregates.rs` (new) — Aggregate computation logic with ListAggregate, PartyAggregate, DeviceAggregate, SystemAggregate
+- `src/output/mod.rs` — Added aggregates module exports
+- `src/output/schema.rs` — Added aggregate field to PartyOutput and DeviceOutput structs
+- `src/main.rs` — Added aggregate computation to run_parties and run_devices, updated CLI help text
+- `tests/aggregates_test.rs` (new) — Aggregate computation tests (15 tests)
+- `tests/schema_test.rs` — Updated PartyOutput and DeviceOutput test fixtures to include aggregate field
 
 ## Acceptance Criteria
 
-- [ ] List outputs show total counts (count: X of Y total)
-- [ ] Derived status fields are included inline
-- [ ] Aggregate computation is efficient
-- [ ] Aggregates work with both TOON and JSON
-- [ ] Parties list shows device count
-- [ ] Devices list shows identifier count
-- [ ] Aggregates are computed at query time
+- [x] List outputs show total counts (count: X of Y total)
+- [x] Derived status fields are included inline
+- [x] Aggregate computation is efficient
+- [x] Aggregates work with both TOON and JSON
+- [x] Parties list shows device count
+- [x] Devices list shows identifier count
+- [x] Aggregates are computed at query time
 
 ## Test Plan
 

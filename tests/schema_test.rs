@@ -86,6 +86,7 @@ fn test_party_output_serialization() {
         name: "Alice".to_string(),
         device_count: 2,
         location: Some("Home, Floor 1".to_string()),
+        aggregate: None,
     };
 
     let json = serde_json::to_string(&party).expect("Serialization failed");
@@ -101,6 +102,7 @@ fn test_device_output_serialization() {
         identifier_count: 2,
         status: "configured".to_string(),
         location: Some("Home".to_string()),
+        aggregate: None,
     };
 
     let json = serde_json::to_string(&device).expect("Serialization failed");

@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::str::FromStr;
 
+use super::{PartyAggregate, DeviceAggregate};
+
 /// Available output fields for different command types.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CommandField {
@@ -224,6 +226,9 @@ pub struct PartyOutput {
     pub name: String,
     pub device_count: usize,
     pub location: Option<String>,
+    /// Aggregate information about devices.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aggregate: Option<PartyAggregate>,
 }
 
 /// A minimal representation of device data for output.
@@ -233,6 +238,9 @@ pub struct DeviceOutput {
     pub identifier_count: usize,
     pub status: String,
     pub location: Option<String>,
+    /// Aggregate information about identifiers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aggregate: Option<DeviceAggregate>,
 }
 
 /// A minimal representation of status data for output.
