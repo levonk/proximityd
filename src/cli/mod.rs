@@ -5,6 +5,7 @@ pub mod glob;
 pub mod install;
 pub mod limits;
 pub mod man;
+pub mod mode;
 pub mod pager;
 pub mod progress;
 pub mod tui;
@@ -19,6 +20,7 @@ pub use glob::{expand_glob, expand_inputs, is_glob_pattern};
 pub use install::{run_install, run_uninstall};
 pub use limits::{CpuLimit, MemoryLimit};
 pub use man::{display_man_page, generate_man_pages, install_man_pages};
+pub use mode::{detect_mode, is_agent_session, is_tty};
 pub use pager::{detect_pager, page_output, should_page_output};
 pub use progress::{
     abandon, abandon_with_message, create_progress_bar, create_spinner, finish, finish_with_message,

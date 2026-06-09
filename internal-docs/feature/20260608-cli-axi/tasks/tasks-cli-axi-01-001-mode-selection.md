@@ -27,16 +27,16 @@ Implement agent mode as default behavior with auto-detection based on TTY presen
 
 ## Sub-Tasks
 
-- [ ] Add mode enum to config structure (Agent, Human, Auto)
-- [ ] Implement agent session detection logic (check CLAUDE_SESSION, CODEX_SESSION env vars)
-- [ ] Implement TTY detection logic for auto mode selection
-- [ ] Add --human and --interactive CLI flags to force human mode
-- [ ] Add PROXIMITYD_MODE environment variable support
-- [ ] Add mode setting to config file with precedence logic
-- [ ] Implement mode precedence chain (CLI flags > env var > config > auto-detection)
-- [ ] Add mode detection tests for various scenarios
-- [ ] Update CLI help text to document mode selection
-- [ ] Test mode selection with different environments (TTY, non-TTY, agent sessions)
+- [x] Add mode enum to config structure (Agent, Human, Auto)
+- [x] Implement agent session detection logic (check CLAUDE_SESSION, CODEX_SESSION env vars)
+- [x] Implement TTY detection logic for auto mode selection
+- [x] Add --human and --interactive CLI flags to force human mode
+- [x] Add PROXIMITYD_MODE environment variable support
+- [x] Add mode setting to config file with precedence logic
+- [x] Implement mode precedence chain (CLI flags > env var > config > auto-detection)
+- [x] Add mode detection tests for various scenarios
+- [x] Update CLI help text to document mode selection
+- [x] Test mode selection with different environments (TTY, non-TTY, agent sessions)
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 
@@ -50,14 +50,14 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Acceptance Criteria
 
-- [ ] Agent mode is default when no explicit mode selection
-- [ ] Auto-detection works correctly (TTY + agent session detection)
-- [ ] --human flag forces human mode
-- [ ] --interactive flag forces human mode
-- [ ] PROXIMITYD_MODE environment variable overrides config
-- [ ] Config file mode setting works correctly
-- [ ] Mode precedence chain is respected
-- [ ] All mode selection scenarios have tests
+- [x] Agent mode is default when no explicit mode selection
+- [x] Auto-detection works correctly (TTY + agent session detection)
+- [x] --human flag forces human mode
+- [x] --interactive flag forces human mode
+- [x] PROXIMITYD_MODE environment variable overrides config
+- [x] Config file mode setting works correctly
+- [x] Mode precedence chain is respected
+- [x] All mode selection scenarios have tests
 
 ## Test Plan
 

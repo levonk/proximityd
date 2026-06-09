@@ -2,7 +2,7 @@
 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules | Status |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- | ------ |
-| 01-001 | Mode Selection Implementation | feature/current/cli-axi/story-01-001-mode-selection | None | Parallel-safe: true | cli.rs, config.rs | [ ] Todo |
+| 01-001 | Mode Selection Implementation | feature/current/cli-axi/story-01-001-mode-selection | None | Parallel-safe: true | cli.rs, config.rs | [~] In-Progress |
 | 01-002 | TOON Format Implementation | feature/current/cli-axi/story-01-002-toon-format | None | Parallel-safe: true | output.rs, toon.rs (new) | [ ] Todo |
 | 01-003 | Minimal Default Schemas | feature/current/cli-axi/story-01-003-minimal-schemas | None | Parallel-safe: true | cli.rs, output.rs | [ ] Todo |
 | 02-001 | Content Truncation | feature/current/cli-axi/story-02-001-content-truncation | 01-003 | Parallel-safe: true | output.rs | [ ] Todo |

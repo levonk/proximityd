@@ -1,6 +1,19 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Operating mode for the CLI (AXI compliance).
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
+    /// Agent mode: optimized for AI agent consumption (structured output, no TTY dependencies).
+    Agent,
+    /// Human mode: optimized for interactive human use (TTY-dependent, rich formatting).
+    Human,
+    /// Auto mode: detect based on environment (TTY presence, agent session variables).
+    #[default]
+    Auto,
+}
+
 /// General application settings.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GeneralConfig {
@@ -13,6 +26,9 @@ pub struct GeneralConfig {
     /// Enable SIGHUP config reload.
     #[serde(default = "default_config_reload")]
     pub config_reload: bool,
+    /// Operating mode (agent, human, auto).
+    #[serde(default)]
+    pub mode: Mode,
 }
 
 /// Privacy settings.
@@ -222,6 +238,7 @@ impl Default for GeneralConfig {
             log_level: default_log_level(),
             max_log_age_days: default_max_log_age_days(),
             config_reload: default_config_reload(),
+            mode: Mode::default(),
         }
     }
 }

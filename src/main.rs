@@ -10,7 +10,8 @@ use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 // Import pager, progress, and limits utilities
-use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit};
+use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit, detect_mode, is_agent_session, is_tty};
+use btnotify::config::app::Mode;
 use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
 
 // Module name for logging
@@ -21,7 +22,7 @@ static COLORS_ENABLED: Lazy<bool> =
     Lazy::new(|| atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err());
 
 #[derive(Parser)]
-#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nExit codes:\n  0   Success\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
+#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nExit codes:\n  0   Success\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
 struct Cli {
     /// Input files or glob patterns. Use "-" for stdin.
     #[arg(value_name = "INPUTS")]
@@ -34,6 +35,14 @@ struct Cli {
     /// Override devices mapping file
     #[arg(long, env = "PROXIMITYD_DEVICES")]
     devices: Option<PathBuf>,
+
+    /// Force human mode (interactive, TTY-dependent output)
+    #[arg(long, help = "Force human mode (interactive, TTY-dependent output)")]
+    human: bool,
+
+    /// Operating mode (agent, human, auto)
+    #[arg(long, env = "PROXIMITYD_MODE", value_name = "MODE", help = "Operating mode: agent, human, or auto (default: auto)")]
+    mode: Option<String>,
 
     /// Output as JSON
     #[arg(long)]
@@ -910,6 +919,44 @@ fn main() -> Result<()> {
             std::process::exit(EXIT_VALIDATION_ERROR);
         }
     };
+
+    // Determine operating mode with precedence: CLI flags > env var > config > auto-detection
+    let effective_mode = if cli.human || cli.interactive {
+        // --human or --interactive forces human mode
+        info!("Human mode forced via CLI flag");
+        Mode::Human
+    } else if let Some(ref mode_str) = cli.mode {
+        // PROXIMITYD_MODE env var or --mode flag
+        match mode_str.to_lowercase().as_str() {
+            "agent" => {
+                info!("Agent mode set via environment/flag");
+                Mode::Agent
+            }
+            "human" => {
+                info!("Human mode set via environment/flag");
+                Mode::Human
+            }
+            "auto" => {
+                info!("Auto mode set via environment/flag");
+                detect_mode(app_config.general.mode)
+            }
+            _ => {
+                eprintln!("Invalid mode value: {}. Valid values: agent, human, auto", mode_str);
+                std::process::exit(EXIT_USAGE_ERROR);
+            }
+        }
+    } else {
+        // Use config mode (which may be Auto)
+        let config_mode = app_config.general.mode;
+        let detected = detect_mode(config_mode);
+        info!("Mode from config: {:?}, detected: {:?}", config_mode, detected);
+        detected
+    };
+
+    // Log mode detection details
+    info!("Effective operating mode: {:?}", effective_mode);
+    info!("Agent session detected: {}", is_agent_session());
+    info!("TTY detected: {}", is_tty());
 
     // Load device mappings (optional — missing file is OK)
     let devices_config = match config::load_devices(cli.devices.clone()) {
