@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 4
 parallel_id: 1
 branch: "feature/current/cli-axi/story-04-001-session-hooks"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["01-001", "01-002"]
@@ -27,19 +27,19 @@ Implement session hook infrastructure for ambient context injection. Add --sessi
 
 ## Sub-Tasks
 
-- [ ] Create hooks.rs module for session hook infrastructure
-- [ ] Implement --session-context command with TOON output
-- [ ] Make session-context output token-budget-aware
-- [ ] Implement directory-scoped context (current working directory)
-- [ ] Add --install-agent-hooks command
-- [ ] Implement hook registration for Claude Code (~/.claude/settings.json)
-- [ ] Implement hook registration for Codex (~/.codex/hooks.json)
-- [ ] Add idempotent hook installation (silent no-op if unchanged)
-- [ ] Use PATH-verified binary names with absolute path fallback
-- [ ] Implement session-end hook registration
-- [ ] Add session metadata caching for future context enrichment
-- [ ] Add session hook tests
-- [ ] Update CLI help text to document hook commands
+- [x] Create hooks.rs module for session hook infrastructure
+- [x] Implement --session-context command with TOON output
+- [x] Make session-context output token-budget-aware
+- [x] Implement directory-scoped context (current working directory)
+- [x] Add --install-agent-hooks command
+- [x] Implement hook registration for Claude Code (~/.claude/settings.json)
+- [x] Implement hook registration for Codex (~/.codex/hooks.json)
+- [x] Add idempotent hook installation (silent no-op if unchanged)
+- [x] Use PATH-verified binary names with absolute path fallback
+- [x] Implement session-end hook registration
+- [x] Add session metadata caching for future context enrichment
+- [x] Add session hook tests
+- [x] Update CLI help text to document hook commands
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 
@@ -52,15 +52,15 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Acceptance Criteria
 
-- [ ] --session-context outputs compact state in TOON format
-- [ ] Session-context is token-budget-aware
-- [ ] Context is directory-scoped
-- [ ] --install-agent-hooks registers hooks correctly
-- [ ] Hooks work for Claude Code and Codex
-- [ ] Hook installation is idempotent
-- [ ] Binary names are PATH-verified with fallback
-- [ ] Session-end hooks are registered
-- [ ] Session metadata is cached
+- [x] --session-context outputs compact state in TOON format
+- [x] Session-context is token-budget-aware
+- [x] Context is directory-scoped
+- [x] --install-agent-hooks registers hooks correctly
+- [x] Hooks work for Claude Code and Codex
+- [x] Hook installation is idempotent
+- [x] Binary names are PATH-verified with fallback
+- [x] Session-end hooks are registered
+- [x] Session metadata is cached
 
 ## Test Plan
 

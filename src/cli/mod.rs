@@ -2,6 +2,7 @@ pub mod completion;
 pub mod confirm;
 pub mod format;
 pub mod glob;
+pub mod hooks;
 pub mod install;
 pub mod limits;
 pub mod man;
@@ -17,6 +18,7 @@ pub use format::{
     get_terminal_size, handle_resize, is_resize_supported, TerminalSize, truncate_text, wrap_text,
 };
 pub use glob::{expand_glob, expand_inputs, is_glob_pattern};
+pub use hooks::{run_hooks, HooksArgs};
 pub use install::{run_install, run_uninstall};
 pub use limits::{CpuLimit, MemoryLimit};
 pub use man::{display_man_page, generate_man_pages, install_man_pages};

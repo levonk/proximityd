@@ -4,6 +4,7 @@ pub mod detection;
 pub mod discovery;
 pub mod error;
 pub mod health;
+pub mod hooks;
 pub mod location;
 pub mod notifier;
 pub mod output;

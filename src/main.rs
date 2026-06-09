@@ -70,7 +70,7 @@ static COLORS_ENABLED: Lazy<bool> =
     Lazy::new(|| atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err());
 
 #[derive(Parser)]
-#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nCONTENT TRUNCATION:\n  Large text fields are truncated by default (1000 chars) to reduce token consumption.\n  Use --full flag to disable truncation and show complete content. Truncation applies to\n  device names, locations, and other text fields in both agent and human modes.\n  Configure default limit via config.toml: general.truncation_limit.\n\nEMPTY STATES:\n  When a command returns no results, the CLI outputs a definitive empty state message\n  explicitly stating \"0 results\" with context (scope and any applied filters). Empty queries\n  exit with code 0 (success) to distinguish from errors. Empty state formatting is consistent\n  across all commands (parties, devices, status) and all output formats (human, json, toon).\n\nExit codes:\n  0   Success (including successful empty queries)\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
+#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nCONTENT TRUNCATION:\n  Large text fields are truncated by default (1000 chars) to reduce token consumption.\n  Use --full flag to disable truncation and show complete content. Truncation applies to\n  device names, locations, and other text fields in both agent and human modes.\n  Configure default limit via config.toml: general.truncation_limit.\n\nEMPTY STATES:\n  When a command returns no results, the CLI outputs a definitive empty state message\n  explicitly stating \"0 results\" with context (scope and any applied filters). Empty queries\n  exit with code 0 (success) to distinguish from errors. Empty state formatting is consistent\n  across all commands (parties, devices, status) and all output formats (human, json, toon).\n\nSESSION HOOKS:\n  The CLI supports session hooks for ambient context injection with AI agents.\n  Use 'proximityd hooks session-context' to output compact state in TOON format.\n  Use 'proximityd hooks install-agent-hooks' to register hooks with Claude Code or Codex.\n  Hooks provide directory-scoped context, git repository info, and configuration summary.\n\nExit codes:\n  0   Success (including successful empty queries)\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
 struct Cli {
     /// Input files or glob patterns. Use "-" for stdin.
     #[arg(value_name = "INPUTS")]
@@ -323,6 +323,11 @@ enum Commands {
         /// Command to display manual page for (default: main command)
         #[arg(value_name = "COMMAND")]
         command: Option<String>,
+    },
+    /// Session hook commands for ambient context injection
+    Hooks {
+        #[command(flatten)]
+        args: btnotify::cli::HooksArgs,
     },
 }
 
@@ -1421,6 +1426,16 @@ fn main() -> Result<()> {
                 let cmd = Cli::command();
                 if let Err(e) = btnotify::cli::display_man_page(&cmd, command.as_deref()) {
                     eprintln!("Man page error: {e}");
+                    std::process::exit(EXIT_GENERIC_ERROR);
+                }
+                return Ok(());
+            }
+            Commands::Hooks { args } => {
+                // Initialize logging with defaults for hooks command
+                init_logging(&cli, None)?;
+
+                if let Err(e) = btnotify::cli::run_hooks(args.clone()) {
+                    eprintln!("Hooks error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());

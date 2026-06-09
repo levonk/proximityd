@@ -52,17 +52,15 @@ fn validate_flags(force: bool, quiet: bool, mode: Mode) -> Result<()> {
     let config_dir = proj_dirs.config_dir();
     
     // Check if config directory is writable (if not dry run)
-    if config_dir.exists() {
-        if !config_dir.is_dir() {
-            let structured_err = StructuredError::new(
-                error_types::VALIDATION_ERROR,
-                format!("Config path exists but is not a directory: {}", config_dir.display()),
-                EXIT_VALIDATION_ERROR,
-            )
-            .with_suggestion("Remove the file or rename it to allow directory creation");
-            output_structured(&structured_err, mode)?;
-            return Err(anyhow::anyhow!("Config path is not a directory"));
-        }
+    if config_dir.exists() && !config_dir.is_dir() {
+        let structured_err = StructuredError::new(
+            error_types::VALIDATION_ERROR,
+            format!("Config path exists but is not a directory: {}", config_dir.display()),
+            EXIT_VALIDATION_ERROR,
+        )
+        .with_suggestion("Remove the file or rename it to allow directory creation");
+        output_structured(&structured_err, mode)?;
+        return Err(anyhow::anyhow!("Config path is not a directory"));
     }
     
     Ok(())
