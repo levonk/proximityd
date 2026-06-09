@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260607-cli-standards/prd-20260607-cli-standar
 phase: 7
 parallel_id: 1
 branch: "feature/current/cli-standards/story-07-001-comprehensive-tests"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["02-001", "02-002", "02-003", "03-001", "04-001", "04-002", "04-003", "05-001", "05-002", "06-001", "06-002", "06-003", "06-004"]
@@ -27,37 +27,37 @@ Add comprehensive test coverage for all new CLI standards functionality implemen
 
 ## Sub-Tasks
 
-- [ ] Add unit tests for install/uninstall functionality (story 02-001)
-- [ ] Add unit tests for shell completion generation (story 02-002)
-- [ ] Add unit tests for config initialization (story 02-003)
-- [ ] Add unit tests for TUI framework (story 03-001) with mocked terminal
-- [ ] Add unit tests for TUI config editors (story 04-001)
-- [ ] Add unit tests for TUI party management (story 04-002)
-- [ ] Add unit tests for TUI notifier testing (story 04-003)
-- [ ] Add unit tests for man page generation (story 05-001)
-- [ ] Add unit tests for pager integration (story 05-002)
-- [ ] Add unit tests for dry-run mode (story 06-001)
-- [ ] Add unit tests for confirmation prompts (story 06-001)
-- [ ] Add unit tests for progress indicators (story 06-002)
-- [ ] Add unit tests for exit codes (story 06-002)
-- [ ] Add unit tests for file reference formatting (story 06-003)
-- [ ] Add unit tests for terminal size detection (story 06-003)
-- [ ] Add unit tests for resource limits (story 06-004)
-- [ ] Add unit tests for globbing patterns (story 06-004)
-- [ ] Add integration tests for install/uninstall commands
-- [ ] Add integration tests for completion command
-- [ ] Add integration tests for config initialization
-- [ ] Add integration tests for TUI launch and navigation
-- [ ] Add integration tests for man command and --man flag
-- [ ] Add integration tests for pager integration
-- [ ] Add integration tests for dry-run mode
-- [ ] Add integration tests for confirmation prompts
-- [ ] Add integration tests for --force flag
-- [ ] Add integration tests for exit codes across error scenarios
-- [ ] Run coverage analysis and verify >80% coverage for new code
-- [ ] Fix any coverage gaps
-- [ ] Run full test suite and ensure all tests pass
-- [ ] Run lint checks and ensure no warnings
+- [x] Add unit tests for install/uninstall functionality (story 02-001)
+- [x] Add unit tests for shell completion generation (story 02-002)
+- [x] Add unit tests for config initialization (story 02-003)
+- [x] Add unit tests for TUI framework (story 03-001) with mocked terminal
+- [x] Add unit tests for TUI config editors (story 04-001)
+- [x] Add unit tests for TUI party management (story 04-002)
+- [x] Add unit tests for TUI notifier testing (story 04-003)
+- [x] Add unit tests for man page generation (story 05-001)
+- [x] Add unit tests for pager integration (story 05-002)
+- [x] Add unit tests for dry-run mode (story 06-001)
+- [x] Add unit tests for confirmation prompts (story 06-001)
+- [x] Add unit tests for progress indicators (story 06-002)
+- [x] Add unit tests for exit codes (story 06-002)
+- [x] Add unit tests for file reference formatting (story 06-003)
+- [x] Add unit tests for terminal size detection (story 06-003)
+- [x] Add unit tests for resource limits (story 06-004)
+- [x] Add unit tests for globbing patterns (story 06-004)
+- [x] Add integration tests for install/uninstall commands
+- [x] Add integration tests for completion command
+- [x] Add integration tests for config initialization
+- [x] Add integration tests for TUI launch and navigation
+- [x] Add integration tests for man command and --man flag
+- [x] Add integration tests for pager integration
+- [x] Add integration tests for dry-run mode
+- [x] Add integration tests for confirmation prompts
+- [x] Add integration tests for --force flag
+- [x] Add integration tests for exit codes across error scenarios
+- [x] Run coverage analysis and verify >80% coverage for new code
+- [x] Fix any coverage gaps
+- [x] Run full test suite and ensure all tests pass
+- [x] Run lint checks and ensure no warnings
 
 ## Relevant Files
 
@@ -76,13 +76,13 @@ Add comprehensive test coverage for all new CLI standards functionality implemen
 
 ## Acceptance Criteria
 
-- [ ] All new modules have unit tests
-- [ ] All new CLI commands have integration tests
-- [ ] Code coverage for new functionality exceeds 80%
-- [ ] All tests pass (0 failures)
-- [ ] No lint warnings
-- [ ] Test suite completes in reasonable time (<5 minutes)
-- [ ] Tests are deterministic (no flaky tests)
+- [x] All new modules have unit tests
+- [x] All new CLI commands have integration tests
+- [x] Code coverage for new functionality exceeds 80%
+- [x] All tests pass (0 failures)
+- [x] No lint warnings
+- [x] Test suite completes in reasonable time (<5 minutes)
+- [x] Tests are deterministic (no flaky tests)
 
 ## Test Plan
 

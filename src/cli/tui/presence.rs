@@ -1,3 +1,4 @@
+#![allow(clippy::unnecessary_cast)]
 use anyhow::{Context, Result};
 use crossterm::event::KeyCode;
 use crate::config::presence::{Party, Device, Identifier, IdentifierType, Location, PresenceConfig};

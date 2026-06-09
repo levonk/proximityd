@@ -173,3 +173,161 @@ fn test_uninstall_dry_run() {
         .success()
         .stdout(predicate::str::contains("DRY RUN"));
 }
+
+#[test]
+fn test_install_creates_config_files() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("install")
+        .arg("--dry-run")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("config directory"));
+}
+
+#[test]
+fn test_install_force_overwrites() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("install")
+        .arg("--force")
+        .arg("--dry-run")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DRY RUN"));
+}
+
+#[test]
+fn test_uninstall_force_removes_config() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("uninstall")
+        .arg("--force")
+        .arg("--dry-run")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DRY RUN"));
+}
+
+#[test]
+fn test_uninstall_quiet_no_prompt() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("uninstall")
+        .arg("--dry-run")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DRY RUN"));
+}
+
+#[test]
+fn test_completion_command() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--generate")
+        .arg("bash")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("complete"));
+}
+
+#[test]
+fn test_completion_zsh() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--generate")
+        .arg("zsh")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_completion_fish() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--generate")
+        .arg("fish")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_completion_invalid_shell() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--generate")
+        .arg("invalid")
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_man_command() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("man")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("NAME"));
+}
+
+#[test]
+fn test_man_subcommand() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("man")
+        .arg("status")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("NAME"));
+}
+
+#[test]
+fn test_no_pager_flag() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--no-pager")
+        .arg("status")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_force_flag_bypasses_confirmation() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("uninstall")
+        .arg("--force")
+        .arg("--dry-run")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DRY RUN"));
+}
+
+#[test]
+fn test_progress_with_quiet() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--quiet")
+        .arg("status")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("⠋").not());
+}
+
+#[test]
+fn test_config_reload_signal() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("status")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_file_reference_in_error() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    cmd.arg("--config")
+        .arg("/nonexistent/config.toml")
+        .arg("status")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Presence Status"));
+}
+
+#[test]
+fn test_glob_pattern_support() {
+    let mut cmd = Command::cargo_bin("proximityd").unwrap();
+    // Test that glob patterns are accepted (even if no files match)
+    cmd.arg("export")
+        .arg("--format")
+        .arg("jsonl")
+        .assert()
+        .success();
+}

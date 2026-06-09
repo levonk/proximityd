@@ -74,6 +74,8 @@ pub fn generate_completion(cmd: &mut Command, args: CompletionArgs) -> Result<()
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::Command;
+    use tempfile::TempDir;
 
     #[test]
     fn test_completion_args_parsing() {
@@ -93,5 +95,102 @@ mod tests {
         };
         assert_eq!(args.shell, "zsh");
         assert!(args.output.is_some());
+    }
+
+    #[test]
+    fn test_completion_args_case_insensitive() {
+        let args = CompletionArgs {
+            shell: "BASH".to_string(),
+            output: None,
+        };
+        assert_eq!(args.shell.to_lowercase(), "bash");
+    }
+
+    #[test]
+    fn test_generate_completion_bash_to_stdout() {
+        let mut cmd = Command::new("proximityd");
+        let args = CompletionArgs {
+            shell: "bash".to_string(),
+            output: None,
+        };
+        // This should not error when writing to stdout
+        let result = generate_completion(&mut cmd, args);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_completion_zsh_to_stdout() {
+        let mut cmd = Command::new("proximityd");
+        let args = CompletionArgs {
+            shell: "zsh".to_string(),
+            output: None,
+        };
+        let result = generate_completion(&mut cmd, args);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_completion_fish_to_stdout() {
+        let mut cmd = Command::new("proximityd");
+        let args = CompletionArgs {
+            shell: "fish".to_string(),
+            output: None,
+        };
+        let result = generate_completion(&mut cmd, args);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_completion_to_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let output_path = temp_dir.path().join("completion.sh");
+        let mut cmd = Command::new("proximityd");
+        let args = CompletionArgs {
+            shell: "bash".to_string(),
+            output: Some(output_path.clone()),
+        };
+        let result = generate_completion(&mut cmd, args);
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+    }
+
+    #[test]
+    fn test_generate_completion_creates_parent_directory() {
+        let temp_dir = TempDir::new().unwrap();
+        let output_path = temp_dir.path().join("subdir/completion.sh");
+        let mut cmd = Command::new("proximityd");
+        let args = CompletionArgs {
+            shell: "bash".to_string(),
+            output: Some(output_path.clone()),
+        };
+        let result = generate_completion(&mut cmd, args);
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+    }
+
+    #[test]
+    fn test_generate_completion_unsupported_shell() {
+        let mut cmd = Command::new("proximityd");
+        let args = CompletionArgs {
+            shell: "powershell".to_string(),
+            output: None,
+        };
+        let result = generate_completion(&mut cmd, args);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Unsupported shell"));
+    }
+
+    #[test]
+    fn test_generate_completion_all_supported_shells() {
+        let shells = vec!["bash", "zsh", "fish"];
+        for shell in shells {
+            let mut cmd = Command::new("proximityd");
+            let args = CompletionArgs {
+                shell: shell.to_string(),
+                output: None,
+            };
+            let result = generate_completion(&mut cmd, args);
+            assert!(result.is_ok(), "Shell {} should be supported", shell);
+        }
     }
 }

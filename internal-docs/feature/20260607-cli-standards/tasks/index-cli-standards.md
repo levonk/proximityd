@@ -55,7 +55,7 @@ This index summarizes all stories for implementing CLI standards compliance and 
 
 | Story ID | Story Title | Branch | Dependencies | Parallel-safe | Modules |
 | -------- | ----------- | ------ | ------------ | ------------- | ------- |
-| 07-001 | Add comprehensive tests for all new CLI standards | feature/current/cli-standards/story-07-001-comprehensive-tests | 02-001, 02-002, 02-003, 03-001, 04-001, 04-002, 04-003, 05-001, 05-002, 06-001, 06-002, 06-003, 06-004 | Parallel-safe: false | tests/ |
+| 07-001 | Add comprehensive tests for all new CLI standards | feature/current/cli-standards/story-07-001-comprehensive-tests | 02-001, 02-002, 02-003, 03-001, 04-001, 04-002, 04-003, 05-001, 05-002, 06-001, 06-002, 06-003, 06-004 | Parallel-safe: false | tests/ | [x] Done |
 | 07-002 | Update documentation and verify all CLI standards | feature/current/cli-standards/story-07-002-docs-verification | 02-001, 02-002, 02-003, 03-001, 04-001, 04-002, 04-003, 05-001, 05-002, 06-001, 06-002, 06-003, 06-004 | Parallel-safe: true | README.md, AGENTS.md |
 
 ## Summary

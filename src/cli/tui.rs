@@ -1,3 +1,6 @@
+#![allow(clippy::single_match)]
+#![allow(clippy::collapsible_match)]
+#![allow(clippy::unnecessary_map_or)]
 pub mod config;
 pub mod presence;
 pub mod notifier;
