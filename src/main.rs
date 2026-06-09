@@ -13,6 +13,7 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit, detect_mode, is_agent_session, is_tty};
 use btnotify::config::app::Mode;
 use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
+use btnotify::output::{OutputSchema, CommandField};
 
 // Module name for logging
 const MODULE_NAME: &str = "proximityd";
@@ -103,6 +104,10 @@ struct Cli {
     #[arg(long, value_name = "FORMAT", help = "Output format: toon (token-efficient), json (structured), or human (readable)")]
     format: Option<String>,
 
+    /// Select specific output fields (comma-separated, e.g., name,status,location)
+    #[arg(long, value_name = "FIELDS", help = "Select specific output fields (comma-separated, e.g., name,status,location)")]
+    fields: Option<String>,
+
     /// Quiet mode - suppress all output except errors
     #[arg(long, short = 'q')]
     quiet: bool,
@@ -177,6 +182,10 @@ enum Commands {
         #[arg(long)]
         output: Option<PathBuf>,
 
+        /// Select specific output fields (comma-separated)
+        #[arg(long, value_name = "FIELDS")]
+        fields: Option<String>,
+
         /// Disable pager for long output
         #[arg(long)]
         no_pager: bool,
@@ -195,6 +204,38 @@ enum Commands {
         #[arg(long)]
         json: bool,
 
+        /// Select specific output fields (comma-separated)
+        #[arg(long, value_name = "FIELDS")]
+        fields: Option<String>,
+
+        /// Disable pager for long output
+        #[arg(long)]
+        no_pager: bool,
+    },
+    /// List configured parties
+    Parties {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+
+        /// Select specific output fields (comma-separated)
+        #[arg(long, value_name = "FIELDS")]
+        fields: Option<String>,
+
+        /// Disable pager for long output
+        #[arg(long)]
+        no_pager: bool,
+    },
+    /// List configured devices
+    Devices {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+
+        /// Select specific output fields (comma-separated)
+        #[arg(long, value_name = "FIELDS")]
+        fields: Option<String>,
+
         /// Disable pager for long output
         #[arg(long)]
         no_pager: bool,
@@ -212,6 +253,10 @@ enum Commands {
         /// Output file path (default: stdout)
         #[arg(long)]
         output: Option<PathBuf>,
+
+        /// Select specific output fields (comma-separated)
+        #[arg(long, value_name = "FIELDS")]
+        fields: Option<String>,
 
         /// Disable pager for long output
         #[arg(long)]
@@ -433,10 +478,31 @@ fn init_logging(cli: &Cli, app_config: Option<&config::AppConfig>) -> Result<()>
     Ok(())
 }
 
+/// Parse fields argument and create an OutputSchema for the given command.
+fn parse_output_schema(command: &str, fields: Option<String>) -> Result<OutputSchema> {
+    if let Some(fields_str) = fields {
+        let field_names: Vec<String> = fields_str
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        
+        if field_names.is_empty() {
+            return Err(anyhow::anyhow!("Fields argument cannot be empty"));
+        }
+        
+        OutputSchema::with_fields(command, &field_names)
+    } else {
+        Ok(OutputSchema::new(command))
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn run_discover(
     hours: u32,
     min_confidence: f64,
     output: Option<PathBuf>,
+    _fields: Option<String>,
     no_pager: bool,
     quiet: bool,
     max_memory: Option<u64>,
@@ -509,10 +575,15 @@ fn run_discover(
     Ok(())
 }
 
-fn run_status(json: bool, no_pager: bool, quiet: bool) -> Result<()> {
-    use btnotify::state::{PresenceStateTable, SerializableTrackedDevice};
+fn run_status(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) -> Result<()> {
+    use btnotify::state::PresenceStateTable;
+    use btnotify::output::StatusOutput;
 
     info!("Running status command");
+
+    // Parse output schema
+    let schema = parse_output_schema("status", fields)?;
+    info!("Using {} fields for status output", schema.field_count());
 
     // Create a new state table (in a real implementation, this would query a running daemon)
     let state_table = PresenceStateTable::new();
@@ -521,15 +592,36 @@ fn run_status(json: bool, no_pager: bool, quiet: bool) -> Result<()> {
     let present = state_table.list_present();
 
     if json {
-        let serializable: Vec<SerializableTrackedDevice> = present.iter().map(|d| d.into()).collect();
-        let output = serde_json::to_string_pretty(&serializable)
+        // Apply schema to JSON output
+        let status_output = StatusOutput {
+            daemon_status: "running".to_string(),
+            active_parties: present.len(), // Simplified: using device count as proxy
+            active_devices: if schema.has_field(CommandField::ActiveDevices) {
+                Some(present.len())
+            } else {
+                None
+            },
+        };
+        
+        let output = serde_json::to_string_pretty(&status_output)
             .context("Failed to serialize status to JSON")?;
         println!("{}", output);
     } else {
         let mut output = String::new();
         output.push_str("Presence Status\n");
         output.push_str("================\n");
-        output.push_str(&format!("Total present devices: {}\n\n", present.len()));
+        
+        if schema.has_field(CommandField::DaemonStatus) {
+            output.push_str("Daemon Status: running\n");
+        }
+        if schema.has_field(CommandField::ActiveParties) {
+            output.push_str(&format!("Active Parties: {}\n", present.len()));
+        }
+        if schema.has_field(CommandField::ActiveDevices) {
+            output.push_str(&format!("Active Devices: {}\n", present.len()));
+        }
+        
+        output.push('\n');
 
         if present.is_empty() {
             output.push_str("No devices currently present.");
@@ -578,10 +670,204 @@ fn run_status(json: bool, no_pager: bool, quiet: bool) -> Result<()> {
     Ok(())
 }
 
+fn run_parties(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) -> Result<()> {
+    use btnotify::config::load_presence;
+    use btnotify::output::PartyOutput;
+
+    info!("Running parties command");
+
+    // Parse output schema
+    let schema = parse_output_schema("parties", fields)?;
+    info!("Using {} fields for parties output", schema.field_count());
+
+    // Load presence config
+    let presence_config = load_presence(None)?;
+    
+    let parties = &presence_config.parties;
+
+    if json {
+        let party_outputs: Vec<PartyOutput> = parties.iter().map(|party| {
+            PartyOutput {
+                name: party.name.clone(),
+                device_count: party.devices.len(),
+                location: party.location.as_ref().map(|loc| {
+                    let mut parts = Vec::new();
+                    if let Some(building) = &loc.building {
+                        parts.push(building.clone());
+                    }
+                    if let Some(floor) = loc.floor {
+                        parts.push(format!("Floor {}", floor));
+                    }
+                    if let Some(room) = &loc.room {
+                        parts.push(room.clone());
+                    }
+                    if let Some(zone) = &loc.zone {
+                        parts.push(zone.clone());
+                    }
+                    parts.join(", ")
+                }),
+            }
+        }).collect();
+
+        let output = serde_json::to_string_pretty(&party_outputs)
+            .context("Failed to serialize parties to JSON")?;
+        println!("{}", output);
+    } else {
+        let mut output = String::new();
+        output.push_str("Configured Parties\n");
+        output.push_str("==================\n");
+        output.push_str(&format!("Total parties: {}\n\n", parties.len()));
+
+        if parties.is_empty() {
+            output.push_str("No parties configured.");
+        } else {
+            for party in parties {
+                output.push_str(&format!("Name: {}\n", party.name));
+                if schema.has_field(CommandField::PartyDeviceCount) {
+                    output.push_str(&format!("  Devices: {}\n", party.devices.len()));
+                }
+                if schema.has_field(CommandField::PartyLocation) {
+                    if let Some(location) = &party.location {
+                        let mut loc_parts = Vec::new();
+                        if let Some(building) = &location.building {
+                            loc_parts.push(building.clone());
+                        }
+                        if let Some(floor) = location.floor {
+                            loc_parts.push(format!("Floor {}", floor));
+                        }
+                        if let Some(room) = &location.room {
+                            loc_parts.push(room.clone());
+                        }
+                        if let Some(zone) = &location.zone {
+                            loc_parts.push(zone.clone());
+                        }
+                        if !loc_parts.is_empty() {
+                            output.push_str(&format!("  Location: {}\n", loc_parts.join(", ")));
+                        }
+                    }
+                }
+                output.push('\n');
+            }
+        }
+
+        if should_page_output(&output, no_pager, quiet) {
+            debug!("Paging output through pager");
+            page_output(&output)?;
+        } else {
+            print!("{}", output);
+        }
+    }
+
+    Ok(())
+}
+
+fn run_devices(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) -> Result<()> {
+    use btnotify::config::load_presence;
+    use btnotify::output::DeviceOutput;
+
+    info!("Running devices command");
+
+    // Parse output schema
+    let schema = parse_output_schema("devices", fields)?;
+    info!("Using {} fields for devices output", schema.field_count());
+
+    // Load presence config
+    let presence_config = load_presence(None)?;
+    
+    let mut all_devices = Vec::new();
+    for party in &presence_config.parties {
+        for device in &party.devices {
+            all_devices.push((party, device));
+        }
+    }
+
+    if json {
+        let device_outputs: Vec<DeviceOutput> = all_devices.iter().map(|(_, device)| {
+            DeviceOutput {
+                name: device.name.clone(),
+                identifier_count: device.identifiers.len(),
+                status: "configured".to_string(),
+                location: device.location.as_ref().map(|loc| {
+                    let mut parts = Vec::new();
+                    if let Some(building) = &loc.building {
+                        parts.push(building.clone());
+                    }
+                    if let Some(floor) = loc.floor {
+                        parts.push(format!("Floor {}", floor));
+                    }
+                    if let Some(room) = &loc.room {
+                        parts.push(room.clone());
+                    }
+                    if let Some(zone) = &loc.zone {
+                        parts.push(zone.clone());
+                    }
+                    parts.join(", ")
+                }),
+            }
+        }).collect();
+
+        let output = serde_json::to_string_pretty(&device_outputs)
+            .context("Failed to serialize devices to JSON")?;
+        println!("{}", output);
+    } else {
+        let mut output = String::new();
+        output.push_str("Configured Devices\n");
+        output.push_str("==================\n");
+        output.push_str(&format!("Total devices: {}\n\n", all_devices.len()));
+
+        if all_devices.is_empty() {
+            output.push_str("No devices configured.");
+        } else {
+            for (party, device) in all_devices {
+                output.push_str(&format!("Name: {}\n", device.name));
+                if schema.has_field(CommandField::DeviceIdentifierCount) {
+                    output.push_str(&format!("  Identifiers: {}\n", device.identifiers.len()));
+                }
+                if schema.has_field(CommandField::DeviceStatus) {
+                    output.push_str("  Status: configured\n");
+                }
+                if schema.has_field(CommandField::DeviceLocation) {
+                    let location = device.location.as_ref().or(party.location.as_ref());
+                    if let Some(loc) = location {
+                        let mut loc_parts = Vec::new();
+                        if let Some(building) = &loc.building {
+                            loc_parts.push(building.clone());
+                        }
+                        if let Some(floor) = loc.floor {
+                            loc_parts.push(format!("Floor {}", floor));
+                        }
+                        if let Some(room) = &loc.room {
+                            loc_parts.push(room.clone());
+                        }
+                        if let Some(zone) = &loc.zone {
+                            loc_parts.push(zone.clone());
+                        }
+                        if !loc_parts.is_empty() {
+                            output.push_str(&format!("  Location: {}\n", loc_parts.join(", ")));
+                        }
+                    }
+                }
+                output.push('\n');
+            }
+        }
+
+        if should_page_output(&output, no_pager, quiet) {
+            debug!("Paging output through pager");
+            page_output(&output)?;
+        } else {
+            print!("{}", output);
+        }
+    }
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
 fn run_export(
     format: String,
     since: Option<String>,
     output: Option<PathBuf>,
+    _fields: Option<String>,
     no_pager: bool,
     quiet: bool,
     max_memory: Option<u64>,
@@ -882,6 +1168,7 @@ fn main() -> Result<()> {
                 hours,
                 min_confidence,
                 output,
+                fields,
                 no_pager,
                 max_memory,
                 max_cpu,
@@ -889,18 +1176,38 @@ fn main() -> Result<()> {
                 // Initialize logging with defaults for discover command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_discover(*hours, *min_confidence, output.clone(), *no_pager, cli.quiet, *max_memory, *max_cpu) {
+                if let Err(e) = run_discover(*hours, *min_confidence, output.clone(), fields.clone(), *no_pager, cli.quiet, *max_memory, *max_cpu) {
                     error!("Discovery error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
-            Commands::Status { json, no_pager } => {
+            Commands::Status { json, fields, no_pager } => {
                 // Initialize logging with defaults for status command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_status(*json, *no_pager, cli.quiet) {
+                if let Err(e) = run_status(*json, fields.clone(), *no_pager, cli.quiet) {
                     error!("Status error: {e}");
+                    std::process::exit(EXIT_GENERIC_ERROR);
+                }
+                return Ok(());
+            }
+            Commands::Parties { json, fields, no_pager } => {
+                // Initialize logging with defaults for parties command
+                init_logging(&cli, None)?;
+
+                if let Err(e) = run_parties(*json, fields.clone(), *no_pager, cli.quiet) {
+                    error!("Parties error: {e}");
+                    std::process::exit(EXIT_GENERIC_ERROR);
+                }
+                return Ok(());
+            }
+            Commands::Devices { json, fields, no_pager } => {
+                // Initialize logging with defaults for devices command
+                init_logging(&cli, None)?;
+
+                if let Err(e) = run_devices(*json, fields.clone(), *no_pager, cli.quiet) {
+                    error!("Devices error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
@@ -909,6 +1216,7 @@ fn main() -> Result<()> {
                 format,
                 since,
                 output,
+                fields,
                 no_pager,
                 max_memory,
                 max_cpu,
@@ -916,7 +1224,7 @@ fn main() -> Result<()> {
                 // Initialize logging with defaults for export command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_export(format.clone(), since.clone(), output.clone(), *no_pager, cli.quiet, *max_memory, *max_cpu) {
+                if let Err(e) = run_export(format.clone(), since.clone(), output.clone(), fields.clone(), *no_pager, cli.quiet, *max_memory, *max_cpu) {
                     error!("Export error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }

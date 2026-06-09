@@ -93,7 +93,7 @@ fn test_status_json() {
         .arg("--json")
         .assert()
         .success()
-        .stdout(predicate::str::contains("[")); // JSON array start
+        .stdout(predicate::str::contains("daemon_status")); // New schema output
 }
 
 #[test]
