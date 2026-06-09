@@ -10,7 +10,7 @@ use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 // Import pager, progress, and limits utilities
-use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit, detect_mode, is_agent_session, is_tty};
+use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit, detect_mode, is_agent_session, is_tty, detect_noargs_context, generate_noargs_summary, format_noargs_human, format_noargs_toon};
 use btnotify::config::app::Mode;
 use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
 use btnotify::output::{OutputSchema, CommandField, TruncationConfig, truncate_text, PartyAggregate, DeviceAggregate, ListAggregate, EmptyContext, EmptyFormatter};
@@ -1637,18 +1637,54 @@ fn main() -> Result<()> {
             io::stdin().read_to_string(&mut buffer)?;
 
             if buffer.trim_end().is_empty() {
-                use clap::CommandFactory;
-                let mut cmd = Cli::command();
-                let mut help_output = Vec::new();
-                cmd.write_help(&mut help_output)?;
-                let help_str = String::from_utf8(help_output)?;
-                if should_page_output(&help_str, cli.no_pager, cli.quiet) {
-                    debug!("Paging help output through pager");
-                    page_output(&help_str)?;
+                // Empty stdin - use content-first no-args behavior
+
+                // Simple mode detection for no-args
+                let noargs_mode = if cli.human || cli.interactive {
+                    Mode::Human
+                } else if let Some(ref mode_str) = cli.mode {
+                    match mode_str.to_lowercase().as_str() {
+                        "agent" => Mode::Agent,
+                        "human" => Mode::Human,
+                        "auto" => {
+                            if is_agent_session() {
+                                Mode::Agent
+                            } else {
+                                Mode::Human
+                            }
+                        }
+                        _ => Mode::Human
+                    }
                 } else {
-                    print!("{}", help_str);
+                    if is_agent_session() {
+                        Mode::Agent
+                    } else {
+                        Mode::Human
+                    }
+                };
+
+                let noargs_format = OutputFormat::from_flags(cli.toon, cli.json, cli.format.as_deref(), noargs_mode);
+
+                let context = detect_noargs_context().context("Failed to detect no-args context")?;
+                let summary = generate_noargs_summary(&context);
+
+                let output = match noargs_format {
+                    OutputFormat::Toon => format_noargs_toon(&summary),
+                    OutputFormat::Json => {
+                        serde_json::to_string_pretty(&summary).unwrap_or_else(|_| {
+                            r#"{"error": "Failed to serialize summary"}"#.to_string()
+                        })
+                    }
+                    OutputFormat::Human => format_noargs_human(&summary),
+                };
+
+                if should_page_output(&output, cli.no_pager, cli.quiet) {
+                    debug!("Paging no-args output through pager");
+                    page_output(&output)?;
+                } else {
+                    print!("{}", output);
                 }
-                std::process::exit(EXIT_USAGE_ERROR);
+                std::process::exit(EXIT_SUCCESS);
             }
 
             process_content("stdin", &buffer)?;
@@ -1660,18 +1696,54 @@ fn main() -> Result<()> {
             return Ok(());
         }
 
-        use clap::CommandFactory;
-        let mut cmd = Cli::command();
-        let mut help_output = Vec::new();
-        cmd.write_help(&mut help_output)?;
-        let help_str = String::from_utf8(help_output)?;
-        if should_page_output(&help_str, cli.no_pager, cli.quiet) {
-            debug!("Paging help output through pager");
-            page_output(&help_str)?;
+        // Content-first no-args behavior (no arguments, no stdin)
+        // Simple mode detection for no-args
+        let noargs_mode = if cli.human || cli.interactive {
+            Mode::Human
+        } else if let Some(ref mode_str) = cli.mode {
+            match mode_str.to_lowercase().as_str() {
+                "agent" => Mode::Agent,
+                "human" => Mode::Human,
+                "auto" => {
+                    if is_agent_session() {
+                        Mode::Agent
+                    } else {
+                        Mode::Human
+                    }
+                }
+                _ => Mode::Human
+            }
         } else {
-            print!("{}", help_str);
+            if is_agent_session() {
+                Mode::Agent
+            } else {
+                Mode::Human
+            }
+        };
+
+        let noargs_format = OutputFormat::from_flags(cli.toon, cli.json, cli.format.as_deref(), noargs_mode);
+
+        let context = detect_noargs_context().context("Failed to detect no-args context")?;
+        let summary = generate_noargs_summary(&context);
+
+        let output = match noargs_format {
+            OutputFormat::Toon => format_noargs_toon(&summary),
+            OutputFormat::Json => {
+                // For JSON output, serialize the summary
+                serde_json::to_string_pretty(&summary).unwrap_or_else(|_| {
+                    r#"{"error": "Failed to serialize summary"}"#.to_string()
+                })
+            }
+            OutputFormat::Human => format_noargs_human(&summary),
+        };
+
+        if should_page_output(&output, cli.no_pager, cli.quiet) {
+            debug!("Paging no-args output through pager");
+            page_output(&output)?;
+        } else {
+            print!("{}", output);
         }
-        std::process::exit(1);
+        std::process::exit(EXIT_SUCCESS);
     }
 
     for input in inputs {
