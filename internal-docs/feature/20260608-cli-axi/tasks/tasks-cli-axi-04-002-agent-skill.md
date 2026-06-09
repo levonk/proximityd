@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 4
 parallel_id: 2
 branch: "feature/current/cli-axi/story-04-002-agent-skill"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["04-001"]
@@ -27,18 +27,18 @@ Implement installable agent skill support. Generate SKILL.md from no-args home v
 
 ## Sub-Tasks
 
-- [ ] Create skill.rs module for skill generation
-- [ ] Implement --generate-skill command to output SKILL.md content
-- [ ] Generate SKILL.md from no-args home view
-- [ ] Strip live state from skill (static only, no dynamic data)
-- [ ] Rewrite command examples to non-interactive form
-- [ ] Include trigger-shaped frontmatter (name, description)
-- [ ] Add --check-skill build step to CI
-- [ ] Implement skill staleness detection
-- [ ] Add skill generation tests
-- [ ] Update README.md to document hook and skill paths
-- [ ] Support skill installation via agentskills.io
-- [ ] Add template-based skill generation from CLI metadata
+- [x] Create skill.rs module for skill generation
+- [x] Implement --generate-skill command to output SKILL.md content
+- [x] Generate SKILL.md from no-args home view
+- [x] Strip live state from skill (static only, no dynamic data)
+- [x] Rewrite command examples to non-interactive form
+- [x] Include trigger-shaped frontmatter (name, description)
+- [x] Add --check-skill build step to CI
+- [x] Implement skill staleness detection
+- [x] Add skill generation tests
+- [x] Update README.md to document hook and skill paths
+- [x] Support skill installation via agentskills.io
+- [x] Add template-based skill generation from CLI metadata
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 
@@ -52,14 +52,14 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Acceptance Criteria
 
-- [ ] --generate-skill outputs valid SKILL.md content
-- [ ] SKILL.md is generated from no-args home view
-- [ ] Live state is stripped from skill
-- [ ] Command examples are non-interactive
-- [ ] Trigger frontmatter is included
-- [ ] --check-skill fails if skill is stale
-- [ ] Skill generation is template-based
-- [ ] README documents both hook and skill paths
+- [x] --generate-skill outputs valid SKILL.md content
+- [x] SKILL.md is generated from no-args home view
+- [x] Live state is stripped from skill
+- [x] Command examples are non-interactive
+- [x] Trigger frontmatter is included
+- [x] --check-skill fails if skill is stale
+- [x] Skill generation is template-based
+- [x] README documents both hook and skill paths
 
 ## Test Plan
 

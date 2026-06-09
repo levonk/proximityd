@@ -83,7 +83,7 @@ fn test_status() {
     cmd.arg("status")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Presence Status"));
+        .stdout(predicate::str::contains("active devices")); // Empty state format
 }
 
 #[test]
@@ -93,7 +93,7 @@ fn test_status_json() {
         .arg("--json")
         .assert()
         .success()
-        .stdout(predicate::str::contains("daemon_status")); // New schema output
+        .stdout(predicate::str::contains("scope")); // New schema output
 }
 
 #[test]
@@ -318,7 +318,7 @@ fn test_file_reference_in_error() {
         .arg("status")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Presence Status"));
+        .stdout(predicate::str::contains("active devices")); // Empty state format
 }
 
 #[test]

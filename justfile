@@ -277,6 +277,14 @@ format-check-internal:
     # Check code format
     cargo fmt -- --check
 
+check-skill-internal:
+    # Check if skill file is stale (outdated)
+    if [ -f "SKILL.md" ]; then
+    cargo run --bin proximityd -- skill check SKILL.md
+    else
+    echo "SKILL.md not found - skipping skill check"
+    fi
+
 man-internal:
     # Generate man pages to target/man directory
     #!/usr/bin/env bash

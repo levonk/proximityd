@@ -9,6 +9,7 @@ pub mod man;
 pub mod mode;
 pub mod pager;
 pub mod progress;
+pub mod skill;
 pub mod tui;
 
 pub use completion::{generate_completion, CompletionArgs};
@@ -28,4 +29,5 @@ pub use progress::{
     abandon, abandon_with_message, create_progress_bar, create_spinner, finish, finish_with_message,
     inc, set_message,
 };
+pub use skill::{run_generate_skill, run_check_skill, GenerateSkillCommand, CheckSkillCommand};
 pub use tui::{is_tui_supported, run_tui};

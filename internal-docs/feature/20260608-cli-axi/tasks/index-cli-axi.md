@@ -9,8 +9,8 @@
 | 02-002 | Pre-computed Aggregates | feature/current/cli-axi/story-02-002-pre-computed-aggregates | 01-003 | Parallel-safe: true | cli.rs, output.rs | [x] Done |
 | 02-003 | Definitive Empty States | feature/current/cli-axi/story-02-003-definitive-empty-states | 01-003 | Parallel-safe: true | cli.rs, output.rs | [x] Done |
 | 03-001 | Structured Errors & Exit Codes | feature/current/cli-axi/story-03-001-structured-errors | 01-001, 01-002 | Parallel-safe: true | error.rs, main.rs | [x] Done |
-| 04-001 | Session Hook Infrastructure | feature/current/cli-axi/story-04-001-session-hooks | 01-001, 01-002 | Parallel-safe: true | hooks.rs (new), config.rs | [~] In-Progress |
-| 04-002 | Installable Agent Skill | feature/current/cli-axi/story-04-002-agent-skill | 04-001 | Parallel-safe: true | skill.rs (new), docs/ | [ ] Todo |
+| 04-001 | Session Hook Infrastructure | feature/current/cli-axi/story-04-001-session-hooks | 01-001, 01-002 | Parallel-safe: true | hooks.rs (new), config.rs | [x] Done |
+| 04-002 | Installable Agent Skill | feature/current/cli-axi/story-04-002-agent-skill | 04-001 | Parallel-safe: true | skill.rs (new), docs/ | [x] Done |
 | 05-001 | Content-First No-Args | feature/current/cli-axi/story-05-001-content-first | 01-003, 02-002 | Parallel-safe: true | cli.rs, main.rs | [ ] Todo |
 | 05-002 | Contextual Disclosure | feature/current/cli-axi/story-05-002-contextual-disclosure | 01-003, 02-002 | Parallel-safe: true | output.rs, cli.rs | [ ] Todo |
 | 06-001 | Integration Testing | feature/current/cli-axi/story-06-001-integration-testing | 01-001, 01-002, 01-003, 02-001, 02-002, 02-003, 03-001, 04-001, 04-002, 05-001, 05-002 | Parallel-safe: false | tests/ | [ ] Todo |

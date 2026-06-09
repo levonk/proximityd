@@ -329,6 +329,39 @@ enum Commands {
         #[command(flatten)]
         args: btnotify::cli::HooksArgs,
     },
+    /// Generate agent skill for AI integration
+    Skill {
+        #[command(subcommand)]
+        command: SkillCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum SkillCommands {
+    /// Generate agent skill from CLI metadata
+    Generate {
+        /// Output file path (default: stdout)
+        #[arg(long)]
+        output: Option<PathBuf>,
+
+        /// Include live state in skill (default: false)
+        #[arg(long)]
+        include_live_state: bool,
+
+        /// Use interactive command examples (default: false)
+        #[arg(long)]
+        interactive: bool,
+
+        /// Output format (markdown, json)
+        #[arg(long, default_value = "markdown")]
+        format: String,
+    },
+    /// Check if skill file is stale (outdated)
+    Check {
+        /// Skill file path to check
+        #[arg(value_name = "SKILL_FILE")]
+        skill_file: PathBuf,
+    },
 }
 
 async fn run_daemon(
@@ -1437,6 +1470,38 @@ fn main() -> Result<()> {
                 if let Err(e) = btnotify::cli::run_hooks(args.clone()) {
                     eprintln!("Hooks error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
+                }
+                return Ok(());
+            }
+            Commands::Skill { command } => {
+                // Initialize logging with defaults for skill command
+                init_logging(&cli, None)?;
+
+                match command {
+                    SkillCommands::Generate {
+                        output,
+                        include_live_state,
+                        interactive,
+                        format,
+                    } => {
+                        let cmd = btnotify::cli::GenerateSkillCommand {
+                            output: output.clone(),
+                            include_live_state: *include_live_state,
+                            interactive: *interactive,
+                            format: format.clone(),
+                        };
+                        if let Err(e) = btnotify::cli::run_generate_skill(&cmd) {
+                            eprintln!("Skill generation error: {e}");
+                            std::process::exit(EXIT_GENERIC_ERROR);
+                        }
+                    }
+                    SkillCommands::Check { skill_file } => {
+                        let cmd = btnotify::cli::CheckSkillCommand { skill_file: skill_file.clone() };
+                        if let Err(e) = btnotify::cli::run_check_skill(&cmd) {
+                            eprintln!("Skill check error: {e}");
+                            std::process::exit(EXIT_GENERIC_ERROR);
+                        }
+                    }
                 }
                 return Ok(());
             }

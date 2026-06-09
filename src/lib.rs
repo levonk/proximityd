@@ -10,4 +10,5 @@ pub mod notifier;
 pub mod output;
 pub mod scanner;
 pub mod signals;
+pub mod skill;
 pub mod state;

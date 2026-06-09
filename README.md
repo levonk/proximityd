@@ -327,6 +327,50 @@ proximityd man
 proximityd man status
 ```
 
+### Session Hooks for AI Agents
+
+proximityd supports session hooks for ambient context injection with AI agents like Claude Code and Codex:
+
+```bash
+# Output session context in TOON format
+proximityd hooks session-context
+
+# Install hooks for Claude Code
+proximityd hooks install-agent-hooks --platform claude
+
+# Install hooks for Codex
+proximityd hooks install-agent-hooks --platform codex
+```
+
+Session hooks provide:
+- Directory-scoped context (current working directory)
+- Git repository information (branch, commit, remote)
+- Configuration summary (scan intervals, device count)
+- Presence state summary (currently present devices)
+
+### Agent Skills
+
+proximityd can generate installable agent skills for AI integration:
+
+```bash
+# Generate skill to stdout
+proximityd skill generate
+
+# Generate skill to file
+proximityd skill generate --output SKILL.md
+
+# Check if skill file is stale (outdated)
+proximityd skill check SKILL.md
+```
+
+Agent skills provide:
+- Complete command reference with usage examples
+- Non-interactive command examples (suitable for automation)
+- Trigger-shaped frontmatter for automatic activation
+- Static content only (no live state for reproducibility)
+
+**Note:** Users only need one integration method (hooks OR skills), not both. Hooks provide dynamic context injection, while skills provide static command documentation.
+
 ### Pager Integration
 
 ```bash
