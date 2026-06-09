@@ -271,6 +271,101 @@ Please rename devices.toml to presence.toml and update the format according to t
 | `PROXIMITYD_LOG_FORMAT` | Log format: `json` or `pretty` |
 | `NO_COLOR` | Disable colored output |
 
+## CLI Features
+
+proximityd follows standard CLI conventions with the following features:
+
+### Install/Uninstall
+
+```bash
+# Install proximityd (creates config files and shell completions)
+proximityd install
+
+# Uninstall proximityd (removes completions, prompts for config removal)
+proximityd uninstall
+
+# Force uninstall without prompts
+proximityd uninstall --force
+
+# Dry-run to preview changes
+proximityd install --dry-run
+proximityd uninstall --dry-run
+```
+
+### Shell Completion
+
+```bash
+# Generate shell completion scripts
+proximityd --generate bash   # Output to stdout
+proximityd --generate zsh
+proximityd --generate fish
+
+# Save to file
+proximityd --generate bash > /usr/local/share/bash-completion/completions/proximityd
+```
+
+### TUI Mode
+
+```bash
+# Launch interactive TUI for configuration
+proximityd --interactive
+```
+
+The TUI provides a terminal-based interface for:
+- Configuring scanner settings
+- Managing parties, devices, and identifiers
+- Testing notifiers
+- Viewing presence status
+
+### Man Pages
+
+```bash
+# View man page for main command
+proximityd man
+
+# View man page for subcommand
+proximityd man status
+```
+
+### Pager Integration
+
+```bash
+# Disable pager for output
+proximityd --no-pager status
+```
+
+### Dry-Run Mode
+
+```bash
+# Preview daemon operation without making changes
+proximityd --daemon --dry-run
+```
+
+### Confirmation Prompts
+
+```bash
+# Force operations without confirmation prompts
+proximityd uninstall --force
+proximityd install --force
+```
+
+### Progress Indicators
+
+Progress bars and spinners are shown during long-running operations. Use `--quiet` to suppress them:
+
+```bash
+proximityd --quiet status
+```
+
+### Standard Exit Codes
+
+- `0` - Success
+- `1` - General error
+- `2` - Usage error (invalid arguments)
+- `3` - Config error
+- `4` - Permission error
+- `5` - Network error
+
 ## CLI Usage
 
 ```bash
@@ -287,6 +382,9 @@ proximityd --health-check
 proximityd status
 proximityd status --json
 
+# Run in interactive TUI mode
+proximityd --interactive
+
 # Export signal log data
 proximityd export --format jsonl --since 2024-01-01
 proximityd export --format csv --output signals.csv
@@ -297,6 +395,19 @@ proximityd discover --hours 24 --output suggestions.toml
 
 # Override config path
 proximityd --daemon --config /path/to/config.toml
+
+# Generate shell completions
+proximityd --generate bash
+proximityd --generate zsh
+proximityd --generate fish
+
+# View man pages
+proximityd man
+proximityd man status
+
+# Install/uninstall
+proximityd install
+proximityd uninstall
 ```
 
 ## Docker

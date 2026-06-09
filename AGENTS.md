@@ -68,6 +68,26 @@ proximityd --generate zsh
 proximityd --generate fish
 ```
 
+### New CLI Features for Agents
+
+Agents should be aware of the following new CLI features:
+
+- **Install/Uninstall**: Use `proximityd install` to initialize config files and shell completions. Use `--dry-run` to preview changes.
+- **TUI Mode**: The `--interactive` flag launches a terminal-based UI for configuration. Agents should avoid TUI mode as it requires interactive terminal input.
+- **Man Pages**: Use `proximityd man [subcommand]` to view documentation in pager.
+- **Pager Integration**: Use `--no-pager` to disable pager when scripting output.
+- **Dry-Run Mode**: Use `--dry-run` to preview daemon operations without making changes.
+- **Confirmation Prompts**: Use `--force` to bypass confirmation prompts in scripts.
+- **Progress Indicators**: Use `--quiet` to suppress progress bars and spinners in scripts.
+- **Standard Exit Codes**: Exit codes follow standard conventions (0=success, 1=error, 2=usage, 3=config, 4=permission, 5=network).
+
+### TUI Mode Considerations for Agents
+
+The TUI mode (`--interactive`) is designed for human interaction and should not be used by agents:
+- It requires interactive terminal input (keyboard navigation)
+- It may not work in non-TTY environments
+- For automated configuration, use direct config file editing instead
+
 ### Internal Targets (called by devbox scripts, not directly by agents)
 | Target | Command |
 |--------|---------|
