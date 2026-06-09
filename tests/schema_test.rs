@@ -2,6 +2,7 @@
 
 use btnotify::output::{CommandField, OutputSchema, PartyOutput, DeviceOutput, StatusOutput};
 use serde_json;
+use std::str::FromStr;
 
 #[test]
 fn test_command_field_for_command() {

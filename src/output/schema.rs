@@ -296,9 +296,9 @@ mod tests {
     
     #[test]
     fn test_field_parsing() {
-        assert_eq!(CommandField::from_str("name"), Some(CommandField::PartyName));
-        assert_eq!(CommandField::from_str("device_count"), Some(CommandField::PartyDeviceCount));
-        assert_eq!(CommandField::from_str("invalid"), None);
+        assert_eq!(CommandField::from_str("name"), Ok(CommandField::PartyName));
+        assert_eq!(CommandField::from_str("device_count"), Ok(CommandField::PartyDeviceCount));
+        assert!(CommandField::from_str("invalid").is_err());
     }
     
     #[test]

@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 2
 parallel_id: 1
 branch: "feature/current/cli-axi/story-02-001-content-truncation"
-status: "todo"
+status: "in_progress"
 assignee: ""
 reviewer: ""
 dependencies: ["01-003"]
@@ -27,16 +27,16 @@ Implement content truncation for large text fields (500-1500 chars default). Add
 
 ## Sub-Tasks
 
-- [ ] Implement truncation logic with configurable limit (default 1000 chars)
-- [ ] Add --full CLI flag to disable truncation
-- [ ] Include truncation metadata in output (total size, truncated indicator)
-- [ ] Add help suggestions for --full flag when content is truncated
-- [ ] Apply truncation to device names, identifier values, signal logs
-- [ ] Add truncation tests for various field types
-- [ ] Update CLI help text to document truncation behavior
-- [ ] Add config option for default truncation limit
-- [ ] Test truncation with different content sizes
-- [ ] Ensure truncation works in both agent and human modes
+- [x] Implement truncation logic with configurable limit (default 1000 chars)
+- [x] Add --full CLI flag to disable truncation
+- [x] Include truncation metadata in output (total size, truncated indicator)
+- [x] Add help suggestions for --full flag when content is truncated
+- [x] Apply truncation to device names, identifier values, signal logs
+- [x] Add truncation tests for various field types
+- [x] Update CLI help text to document truncation behavior
+- [x] Add config option for default truncation limit
+- [x] Test truncation with different content sizes
+- [x] Ensure truncation works in both agent and human modes
 
 Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `[!]`.
 
@@ -49,13 +49,13 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Acceptance Criteria
 
-- [ ] Large text fields are truncated by default (1000 chars)
-- [ ] --full flag disables truncation
-- [ ] Truncation metadata shows total size
-- [ ] Help suggestions appear when content is truncated
-- [ ] Truncation applies to all large text fields
-- [ ] Config option sets default truncation limit
-- [ ] Truncation works in both agent and human modes
+- [x] Large text fields are truncated by default (1000 chars)
+- [x] --full flag disables truncation
+- [x] Truncation metadata shows total size
+- [x] Help suggestions appear when content is truncated
+- [x] Truncation applies to all large text fields
+- [x] Config option sets default truncation limit
+- [x] Truncation works in both agent and human modes
 
 ## Test Plan
 

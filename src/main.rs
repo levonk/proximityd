@@ -13,7 +13,7 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use btnotify::cli::{page_output, should_page_output, create_spinner, set_message, finish_with_message, abandon_with_message, MemoryLimit, CpuLimit, detect_mode, is_agent_session, is_tty};
 use btnotify::config::app::Mode;
 use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_VALIDATION_ERROR, EXIT_SIGINT};
-use btnotify::output::{OutputSchema, CommandField};
+use btnotify::output::{OutputSchema, CommandField, TruncationConfig, truncate_text};
 
 // Module name for logging
 const MODULE_NAME: &str = "proximityd";
@@ -70,7 +70,7 @@ static COLORS_ENABLED: Lazy<bool> =
     Lazy::new(|| atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err());
 
 #[derive(Parser)]
-#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nExit codes:\n  0   Success\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
+#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nCONTENT TRUNCATION:\n  Large text fields are truncated by default (1000 chars) to reduce token consumption.\n  Use --full flag to disable truncation and show complete content. Truncation applies to\n  device names, locations, and other text fields in both agent and human modes.\n  Configure default limit via config.toml: general.truncation_limit.\n\nExit codes:\n  0   Success\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
 struct Cli {
     /// Input files or glob patterns. Use "-" for stdin.
     #[arg(value_name = "INPUTS")]
@@ -107,6 +107,10 @@ struct Cli {
     /// Select specific output fields (comma-separated, e.g., name,status,location)
     #[arg(long, value_name = "FIELDS", help = "Select specific output fields (comma-separated, e.g., name,status,location)")]
     fields: Option<String>,
+
+    /// Disable truncation - show full content without size limits
+    #[arg(long, help = "Disable truncation - show full content without size limits")]
+    full: bool,
 
     /// Quiet mode - suppress all output except errors
     #[arg(long, short = 'q')]
@@ -186,6 +190,10 @@ enum Commands {
         #[arg(long, value_name = "FIELDS")]
         fields: Option<String>,
 
+        /// Disable truncation - show full content without size limits
+        #[arg(long)]
+        full: bool,
+
         /// Disable pager for long output
         #[arg(long)]
         no_pager: bool,
@@ -208,6 +216,10 @@ enum Commands {
         #[arg(long, value_name = "FIELDS")]
         fields: Option<String>,
 
+        /// Disable truncation - show full content without size limits
+        #[arg(long)]
+        full: bool,
+
         /// Disable pager for long output
         #[arg(long)]
         no_pager: bool,
@@ -222,6 +234,10 @@ enum Commands {
         #[arg(long, value_name = "FIELDS")]
         fields: Option<String>,
 
+        /// Disable truncation - show full content without size limits
+        #[arg(long)]
+        full: bool,
+
         /// Disable pager for long output
         #[arg(long)]
         no_pager: bool,
@@ -235,6 +251,10 @@ enum Commands {
         /// Select specific output fields (comma-separated)
         #[arg(long, value_name = "FIELDS")]
         fields: Option<String>,
+
+        /// Disable truncation - show full content without size limits
+        #[arg(long)]
+        full: bool,
 
         /// Disable pager for long output
         #[arg(long)]
@@ -503,6 +523,7 @@ fn run_discover(
     min_confidence: f64,
     output: Option<PathBuf>,
     _fields: Option<String>,
+    _full: bool,
     no_pager: bool,
     quiet: bool,
     max_memory: Option<u64>,
@@ -575,15 +596,27 @@ fn run_discover(
     Ok(())
 }
 
-fn run_status(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) -> Result<()> {
+fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, quiet: bool) -> Result<()> {
     use btnotify::state::PresenceStateTable;
     use btnotify::output::StatusOutput;
+    use btnotify::config::load_config;
 
     info!("Running status command");
 
     // Parse output schema
     let schema = parse_output_schema("status", fields)?;
     info!("Using {} fields for status output", schema.field_count());
+
+    // Create truncation config (not used in status command but kept for consistency)
+    let _truncation_config = if full {
+        TruncationConfig::disabled()
+    } else {
+        // Try to load config for custom truncation limit
+        match load_config(None) {
+            Ok(config) => TruncationConfig::with_limit(config.general.truncation_limit),
+            Err(_) => TruncationConfig::default(),
+        }
+    };
 
     // Create a new state table (in a real implementation, this would query a running daemon)
     let state_table = PresenceStateTable::new();
@@ -670,8 +703,9 @@ fn run_status(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) -
     Ok(())
 }
 
-fn run_parties(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) -> Result<()> {
+fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, quiet: bool) -> Result<()> {
     use btnotify::config::load_presence;
+    use btnotify::config::load_config;
     use btnotify::output::PartyOutput;
 
     info!("Running parties command");
@@ -679,6 +713,17 @@ fn run_parties(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
     // Parse output schema
     let schema = parse_output_schema("parties", fields)?;
     info!("Using {} fields for parties output", schema.field_count());
+
+    // Create truncation config
+    let truncation_config = if full {
+        TruncationConfig::disabled()
+    } else {
+        // Try to load config for custom truncation limit
+        match load_config(None) {
+            Ok(config) => TruncationConfig::with_limit(config.general.truncation_limit),
+            Err(_) => TruncationConfig::default(),
+        }
+    };
 
     // Load presence config
     let presence_config = load_presence(None)?;
@@ -688,7 +733,7 @@ fn run_parties(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
     if json {
         let party_outputs: Vec<PartyOutput> = parties.iter().map(|party| {
             PartyOutput {
-                name: party.name.clone(),
+                name: truncate_text(&party.name, &truncation_config).content,
                 device_count: party.devices.len(),
                 location: party.location.as_ref().map(|loc| {
                     let mut parts = Vec::new();
@@ -704,7 +749,8 @@ fn run_parties(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
                     if let Some(zone) = &loc.zone {
                         parts.push(zone.clone());
                     }
-                    parts.join(", ")
+                    let location_str = parts.join(", ");
+                    truncate_text(&location_str, &truncation_config).content
                 }),
             }
         }).collect();
@@ -722,7 +768,13 @@ fn run_parties(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
             output.push_str("No parties configured.");
         } else {
             for party in parties {
-                output.push_str(&format!("Name: {}\n", party.name));
+                let truncated_name = truncate_text(&party.name, &truncation_config);
+                output.push_str(&format!("Name: {}\n", truncated_name.content));
+                if truncated_name.truncated {
+                    if let Some(suggestion) = truncated_name.help_suggestion() {
+                        output.push_str(&format!("  {}\n", suggestion));
+                    }
+                }
                 if schema.has_field(CommandField::PartyDeviceCount) {
                     output.push_str(&format!("  Devices: {}\n", party.devices.len()));
                 }
@@ -742,7 +794,14 @@ fn run_parties(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
                             loc_parts.push(zone.clone());
                         }
                         if !loc_parts.is_empty() {
-                            output.push_str(&format!("  Location: {}\n", loc_parts.join(", ")));
+                            let location_str = loc_parts.join(", ");
+                            let truncated_location = truncate_text(&location_str, &truncation_config);
+                            output.push_str(&format!("  Location: {}\n", truncated_location.content));
+                            if truncated_location.truncated {
+                                if let Some(suggestion) = truncated_location.help_suggestion() {
+                                    output.push_str(&format!("  {}\n", suggestion));
+                                }
+                            }
                         }
                     }
                 }
@@ -761,8 +820,9 @@ fn run_parties(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
     Ok(())
 }
 
-fn run_devices(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) -> Result<()> {
+fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, quiet: bool) -> Result<()> {
     use btnotify::config::load_presence;
+    use btnotify::config::load_config;
     use btnotify::output::DeviceOutput;
 
     info!("Running devices command");
@@ -770,6 +830,17 @@ fn run_devices(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
     // Parse output schema
     let schema = parse_output_schema("devices", fields)?;
     info!("Using {} fields for devices output", schema.field_count());
+
+    // Create truncation config
+    let truncation_config = if full {
+        TruncationConfig::disabled()
+    } else {
+        // Try to load config for custom truncation limit
+        match load_config(None) {
+            Ok(config) => TruncationConfig::with_limit(config.general.truncation_limit),
+            Err(_) => TruncationConfig::default(),
+        }
+    };
 
     // Load presence config
     let presence_config = load_presence(None)?;
@@ -784,7 +855,7 @@ fn run_devices(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
     if json {
         let device_outputs: Vec<DeviceOutput> = all_devices.iter().map(|(_, device)| {
             DeviceOutput {
-                name: device.name.clone(),
+                name: truncate_text(&device.name, &truncation_config).content,
                 identifier_count: device.identifiers.len(),
                 status: "configured".to_string(),
                 location: device.location.as_ref().map(|loc| {
@@ -801,7 +872,8 @@ fn run_devices(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
                     if let Some(zone) = &loc.zone {
                         parts.push(zone.clone());
                     }
-                    parts.join(", ")
+                    let location_str = parts.join(", ");
+                    truncate_text(&location_str, &truncation_config).content
                 }),
             }
         }).collect();
@@ -819,7 +891,13 @@ fn run_devices(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
             output.push_str("No devices configured.");
         } else {
             for (party, device) in all_devices {
-                output.push_str(&format!("Name: {}\n", device.name));
+                let truncated_name = truncate_text(&device.name, &truncation_config);
+                output.push_str(&format!("Name: {}\n", truncated_name.content));
+                if truncated_name.truncated {
+                    if let Some(suggestion) = truncated_name.help_suggestion() {
+                        output.push_str(&format!("  {}\n", suggestion));
+                    }
+                }
                 if schema.has_field(CommandField::DeviceIdentifierCount) {
                     output.push_str(&format!("  Identifiers: {}\n", device.identifiers.len()));
                 }
@@ -843,7 +921,14 @@ fn run_devices(json: bool, fields: Option<String>, no_pager: bool, quiet: bool) 
                             loc_parts.push(zone.clone());
                         }
                         if !loc_parts.is_empty() {
-                            output.push_str(&format!("  Location: {}\n", loc_parts.join(", ")));
+                            let location_str = loc_parts.join(", ");
+                            let truncated_location = truncate_text(&location_str, &truncation_config);
+                            output.push_str(&format!("  Location: {}\n", truncated_location.content));
+                            if truncated_location.truncated {
+                                if let Some(suggestion) = truncated_location.help_suggestion() {
+                                    output.push_str(&format!("  {}\n", suggestion));
+                                }
+                            }
                         }
                     }
                 }
@@ -1169,6 +1254,7 @@ fn main() -> Result<()> {
                 min_confidence,
                 output,
                 fields,
+                full,
                 no_pager,
                 max_memory,
                 max_cpu,
@@ -1176,37 +1262,37 @@ fn main() -> Result<()> {
                 // Initialize logging with defaults for discover command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_discover(*hours, *min_confidence, output.clone(), fields.clone(), *no_pager, cli.quiet, *max_memory, *max_cpu) {
+                if let Err(e) = run_discover(*hours, *min_confidence, output.clone(), fields.clone(), *full, *no_pager, cli.quiet, *max_memory, *max_cpu) {
                     error!("Discovery error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
-            Commands::Status { json, fields, no_pager } => {
+            Commands::Status { json, fields, full, no_pager } => {
                 // Initialize logging with defaults for status command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_status(*json, fields.clone(), *no_pager, cli.quiet) {
+                if let Err(e) = run_status(*json, fields.clone(), *full, *no_pager, cli.quiet) {
                     error!("Status error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
-            Commands::Parties { json, fields, no_pager } => {
+            Commands::Parties { json, fields, full, no_pager } => {
                 // Initialize logging with defaults for parties command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_parties(*json, fields.clone(), *no_pager, cli.quiet) {
+                if let Err(e) = run_parties(*json, fields.clone(), *full, *no_pager, cli.quiet) {
                     error!("Parties error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }
                 return Ok(());
             }
-            Commands::Devices { json, fields, no_pager } => {
+            Commands::Devices { json, fields, full, no_pager } => {
                 // Initialize logging with defaults for devices command
                 init_logging(&cli, None)?;
 
-                if let Err(e) = run_devices(*json, fields.clone(), *no_pager, cli.quiet) {
+                if let Err(e) = run_devices(*json, fields.clone(), *full, *no_pager, cli.quiet) {
                     error!("Devices error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }

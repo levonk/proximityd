@@ -29,6 +29,9 @@ pub struct GeneralConfig {
     /// Operating mode (agent, human, auto).
     #[serde(default)]
     pub mode: Mode,
+    /// Truncation limit for text fields in characters (default: 1000).
+    #[serde(default = "default_truncation_limit")]
+    pub truncation_limit: usize,
 }
 
 /// Privacy settings.
@@ -188,6 +191,10 @@ fn default_config_reload() -> bool {
     true
 }
 
+fn default_truncation_limit() -> usize {
+    1000
+}
+
 fn default_scanner_enabled() -> bool {
     true
 }
@@ -239,6 +246,7 @@ impl Default for GeneralConfig {
             max_log_age_days: default_max_log_age_days(),
             config_reload: default_config_reload(),
             mode: Mode::default(),
+            truncation_limit: default_truncation_limit(),
         }
     }
 }
