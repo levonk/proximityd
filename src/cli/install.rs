@@ -3,55 +3,198 @@ use clap::Command;
 use directories::ProjectDirs;
 use std::fs;
 use std::path::Path;
+use crate::error::{StructuredError, error_types, EXIT_SUCCESS, EXIT_VALIDATION_ERROR, EXIT_PERMISSION_DENIED};
+use crate::cli::{is_agent_session, detect_mode};
+use crate::config::app::Mode;
+
+/// Output structured error/info to stdout in agent mode, stderr in human mode
+fn output_structured(error: &StructuredError, mode: Mode) -> Result<()> {
+    match mode {
+        Mode::Agent => {
+            // In agent mode, output TOON format to stdout
+            println!("{}", error.to_toon());
+        }
+        Mode::Human => {
+            // In human mode, output human-readable to stderr
+            eprintln!("Error: {}", error.message);
+            if let Some(ref suggestion) = error.suggestion {
+                eprintln!("Suggestion: {}", suggestion);
+            }
+        }
+        Mode::Auto => {
+            // In auto mode, use agent session detection
+            if is_agent_session() {
+                println!("{}", error.to_toon());
+            } else {
+                eprintln!("Error: {}", error.message);
+                if let Some(ref suggestion) = error.suggestion {
+                    eprintln!("Suggestion: {}", suggestion);
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Validate required flags before performing operations
+fn validate_flags(force: bool, quiet: bool, mode: Mode) -> Result<()> {
+    // In agent mode, force should be implied (no interactive prompts)
+    if is_agent_session() && !force && !quiet {
+        // Agent mode should not require interactive confirmation
+        // This is a warning, not an error - the code handles it
+        tracing::warn!("Agent mode detected but --force not set; prompts will be suppressed automatically");
+    }
+    
+    // Validate that we can determine config directory
+    let proj_dirs = ProjectDirs::from("com.github", "levonk", "proximityd")
+        .ok_or_else(|| anyhow::anyhow!("Failed to determine config directory"))?;
+    
+    let config_dir = proj_dirs.config_dir();
+    
+    // Check if config directory is writable (if not dry run)
+    if config_dir.exists() {
+        if !config_dir.is_dir() {
+            let structured_err = StructuredError::new(
+                error_types::VALIDATION_ERROR,
+                format!("Config path exists but is not a directory: {}", config_dir.display()),
+                EXIT_VALIDATION_ERROR,
+            )
+            .with_suggestion("Remove the file or rename it to allow directory creation");
+            output_structured(&structured_err, mode)?;
+            return Err(anyhow::anyhow!("Config path is not a directory"));
+        }
+    }
+    
+    Ok(())
+}
 
 /// Install proximityd: generate shell completions and initialize config files
-pub fn run_install(_force: bool, dry_run: bool, cmd: &Command) -> Result<()> {
+pub fn run_install(force: bool, dry_run: bool, quiet: bool, cmd: &Command) -> Result<()> {
+    let mode = detect_mode(Mode::Auto);
+    let is_agent = is_agent_session();
+
+    // Validate flags before proceeding
+    validate_flags(force, quiet, mode)?;
+
     if dry_run {
-        println!("DRY RUN: Would install proximityd...");
-        println!();
+        if is_agent {
+            // In agent mode, output structured info
+            let info = StructuredError::new(
+                "dry_run",
+                "Installation preview - no changes will be made",
+                EXIT_SUCCESS,
+            );
+            output_structured(&info, mode)?;
+        } else {
+            println!("DRY RUN: Would install proximityd...");
+            println!();
+        }
     } else {
-        println!("Installing proximityd...");
-        println!();
+        if !is_agent {
+            println!("Installing proximityd...");
+            println!();
+        }
     }
 
-    // Create config directory
+    // Create config directory (idempotent)
     let proj_dirs = ProjectDirs::from("com.github", "levonk", "proximityd")
         .ok_or_else(|| anyhow::anyhow!("Failed to determine project directories"))?;
     let config_dir = proj_dirs.config_dir();
 
     if !config_dir.exists() {
         if dry_run {
-            println!("DRY RUN: Would create config directory: {}", config_dir.display());
+            if is_agent {
+                let info = StructuredError::new(
+                    "dry_run",
+                    format!("Would create config directory: {}", config_dir.display()),
+                    EXIT_SUCCESS,
+                );
+                output_structured(&info, mode)?;
+            } else {
+                println!("DRY RUN: Would create config directory: {}", config_dir.display());
+            }
         } else {
-            fs::create_dir_all(config_dir)
-                .with_context(|| format!("Failed to create config directory: {}", config_dir.display()))?;
-            println!("Created config directory: {}", config_dir.display());
+            match fs::create_dir_all(config_dir) {
+                Ok(_) => {
+                    if !is_agent {
+                        println!("Created config directory: {}", config_dir.display());
+                    }
+                }
+                Err(e) => {
+                    let structured_err = StructuredError::new(
+                        error_types::PERMISSION_DENIED,
+                        format!("Failed to create config directory: {}", config_dir.display()),
+                        EXIT_PERMISSION_DENIED,
+                    )
+                    .with_suggestion("Check directory permissions or run with appropriate privileges");
+                    output_structured(&structured_err, mode)?;
+                    return Err(anyhow::anyhow!("Failed to create config directory: {}", e));
+                }
+            }
         }
     } else {
-        println!("Config directory exists: {}", config_dir.display());
+        // Idempotent: directory already exists is not an error
+        if !is_agent {
+            println!("Config directory exists: {}", config_dir.display());
+        }
     }
 
-    // Initialize config.toml
+    // Initialize config.toml (idempotent)
     let config_path = config_dir.join("config.toml");
     if !config_path.exists() {
         if dry_run {
-            println!("DRY RUN: Would create config file: {}", config_path.display());
+            if is_agent {
+                let info = StructuredError::new(
+                    "dry_run",
+                    format!("Would create config file: {}", config_path.display()),
+                    EXIT_SUCCESS,
+                );
+                output_structured(&info, mode)?;
+            } else {
+                println!("DRY RUN: Would create config file: {}", config_path.display());
+            }
         } else {
             let config_content = include_str!("../../config.example.toml");
-            fs::write(&config_path, config_content)
-                .with_context(|| format!("Failed to write config.toml to {}", config_path.display()))?;
-            println!("Created config file: {}", config_path.display());
+            match fs::write(&config_path, config_content) {
+                Ok(_) => {
+                    if !is_agent {
+                        println!("Created config file: {}", config_path.display());
+                    }
+                }
+                Err(e) => {
+                    let structured_err = StructuredError::new(
+                        error_types::PERMISSION_DENIED,
+                        format!("Failed to write config.toml to {}", config_path.display()),
+                        EXIT_PERMISSION_DENIED,
+                    )
+                    .with_suggestion("Check file permissions or run with appropriate privileges");
+                    output_structured(&structured_err, mode)?;
+                    return Err(anyhow::anyhow!("Failed to write config.toml: {}", e));
+                }
+            }
         }
     } else {
-        println!("Config file exists: {}", config_path.display());
-        println!("  (Not overwriting existing file)");
+        // Idempotent: file already exists is not an error
+        if !is_agent {
+            println!("Config file exists: {}", config_path.display());
+            println!("  (Not overwriting existing file)");
+        }
     }
 
-    // Initialize presence.toml
+    // Initialize presence.toml (idempotent)
     let presence_path = config_dir.join("presence.toml");
     if !presence_path.exists() {
         if dry_run {
-            println!("DRY RUN: Would create presence file: {}", presence_path.display());
+            if is_agent {
+                let info = StructuredError::new(
+                    "dry_run",
+                    format!("Would create presence file: {}", presence_path.display()),
+                    EXIT_SUCCESS,
+                );
+                output_structured(&info, mode)?;
+            } else {
+                println!("DRY RUN: Would create presence file: {}", presence_path.display());
+            }
         } else {
             // For now, create a minimal presence.toml since we don't have an example file
             let presence_content = r#"# Presence configuration for proximityd
@@ -74,54 +217,124 @@ name = "Example Person"
     # Optional notes about this identifier
     # notes = "Primary phone"
 "#;
-            fs::write(&presence_path, presence_content)
-                .with_context(|| format!("Failed to write presence.toml to {}", presence_path.display()))?;
-            println!("Created presence file: {}", presence_path.display());
+            match fs::write(&presence_path, presence_content) {
+                Ok(_) => {
+                    if !is_agent {
+                        println!("Created presence file: {}", presence_path.display());
+                    }
+                }
+                Err(e) => {
+                    let structured_err = StructuredError::new(
+                        error_types::PERMISSION_DENIED,
+                        format!("Failed to write presence.toml to {}", presence_path.display()),
+                        EXIT_PERMISSION_DENIED,
+                    )
+                    .with_suggestion("Check file permissions or run with appropriate privileges");
+                    output_structured(&structured_err, mode)?;
+                    return Err(anyhow::anyhow!("Failed to write presence.toml: {}", e));
+                }
+            }
         }
     } else {
-        println!("Presence file exists: {}", presence_path.display());
-        println!("  (Not overwriting existing file)");
+        // Idempotent: file already exists is not an error
+        if !is_agent {
+            println!("Presence file exists: {}", presence_path.display());
+            println!("  (Not overwriting existing file)");
+        }
     }
 
-    println!();
-
-    // Generate shell completions
-    if dry_run {
-        println!("DRY RUN: Would generate shell completions");
-    } else {
-        generate_completions()?;
+    if !is_agent {
+        println!();
     }
 
-    // Install man pages
+    // Generate shell completions (idempotent)
     if dry_run {
-        println!("DRY RUN: Would install man pages");
+        if is_agent {
+            let info = StructuredError::new(
+                "dry_run",
+                "Would generate shell completions",
+                EXIT_SUCCESS,
+            );
+            output_structured(&info, mode)?;
+        } else {
+            println!("DRY RUN: Would generate shell completions");
+        }
     } else {
-        println!("Installing man pages...");
-        match crate::cli::install_man_pages(cmd) {
-            Ok(()) => println!("Man pages installed successfully"),
+        match generate_completions() {
+            Ok(_) => {
+                // Success - completions generated or already exist
+            }
             Err(e) => {
-                println!("Warning: Failed to install man pages: {}", e);
-                println!("Man pages will still be available via 'proximityd man' command");
+                let structured_err = StructuredError::new(
+                    error_types::PERMISSION_DENIED,
+                    "Failed to generate shell completions",
+                    EXIT_PERMISSION_DENIED,
+                )
+                .with_suggestion("Check config directory permissions");
+                output_structured(&structured_err, mode)?;
+                return Err(e.context("Failed to generate shell completions"));
             }
         }
     }
 
-    println!();
+    // Install man pages (idempotent)
     if dry_run {
-        println!("DRY RUN: Installation would be complete (no changes made)");
+        if is_agent {
+            let info = StructuredError::new(
+                "dry_run",
+                "Would install man pages",
+                EXIT_SUCCESS,
+            );
+            output_structured(&info, mode)?;
+        } else {
+            println!("DRY RUN: Would install man pages");
+        }
     } else {
-        println!("Installation complete!");
+        if !is_agent {
+            println!("Installing man pages...");
+        }
+        match crate::cli::install_man_pages(cmd) {
+            Ok(()) => {
+                if !is_agent {
+                    println!("Man pages installed successfully");
+                }
+            }
+            Err(e) => {
+                // Man page installation failure is not critical
+                if !is_agent {
+                    println!("Warning: Failed to install man pages: {}", e);
+                    println!("Man pages will still be available via 'proximityd man' command");
+                }
+            }
+        }
     }
-    println!();
-    println!("Next steps:");
-    println!("  1. Edit config files in: {}", config_dir.display());
-    println!("  2. Run: proximityd --daemon");
-    println!();
-    println!("Environment variables (optional):");
-    println!("  PROXIMITYD_CONFIG_DIR - Override config directory");
-    println!("  PROXIMITYD_CONFIG - Override config file path");
-    println!("  PROXIMITYD_LOG_LEVEL - Override log level (DEBUG, INFO, WARN, ERROR)");
-    println!("  PROXIMITYD_LOG_FORMAT - Override log format (json, pretty)");
+
+    if !is_agent {
+        println!();
+        if dry_run {
+            println!("DRY RUN: Installation would be complete (no changes made)");
+        } else {
+            println!("Installation complete!");
+        }
+        println!();
+        println!("Next steps:");
+        println!("  1. Edit config files in: {}", config_dir.display());
+        println!("  2. Run: proximityd --daemon");
+        println!();
+        println!("Environment variables (optional):");
+        println!("  PROXIMITYD_CONFIG_DIR - Override config directory");
+        println!("  PROXIMITYD_CONFIG - Override config file path");
+        println!("  PROXIMITYD_LOG_LEVEL - Override log level (DEBUG, INFO, WARN, ERROR)");
+        println!("  PROXIMITYD_LOG_FORMAT - Override log format (json, pretty)");
+    } else {
+        // In agent mode, output success as structured info
+        let success = StructuredError::new(
+            "install_success",
+            format!("Installation complete. Config directory: {}", config_dir.display()),
+            EXIT_SUCCESS,
+        );
+        output_structured(&success, mode)?;
+    }
 
     Ok(())
 }
@@ -287,7 +500,6 @@ fn remove_config_dir(config_dir: &Path) -> Result<()> {
 mod tests {
     use std::fs;
     use tempfile::TempDir;
-    use clap::Command;
 
     #[test]
     fn test_install_creates_config_directory() {

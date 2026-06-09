@@ -1389,7 +1389,7 @@ fn main() -> Result<()> {
                 init_logging(&cli, None)?;
 
                 let cmd = Cli::command();
-                if let Err(e) = btnotify::cli::run_install(*force, *dry_run, &cmd) {
+                if let Err(e) = btnotify::cli::run_install(*force, *dry_run, cli.quiet, &cmd) {
                     error!("Install error: {e}");
                     std::process::exit(EXIT_GENERIC_ERROR);
                 }

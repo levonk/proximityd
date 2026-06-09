@@ -9,6 +9,11 @@ use std::io::{self, Write};
 /// * `force` - If true, skip the prompt and return true
 /// * `quiet` - If true, skip the prompt and return false (auto-confirm No)
 pub fn confirm(prompt: &str, force: bool, quiet: bool) -> Result<bool> {
+    // In agent mode, automatically suppress prompts (act as if force is set)
+    if crate::cli::is_agent_session() {
+        return Ok(true);
+    }
+    
     // If force is set, skip prompt and return true
     if force {
         return Ok(true);
