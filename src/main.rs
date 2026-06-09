@@ -17,12 +17,59 @@ use btnotify::error::{EXIT_SUCCESS, EXIT_GENERIC_ERROR, EXIT_USAGE_ERROR, EXIT_V
 // Module name for logging
 const MODULE_NAME: &str = "proximityd";
 
+// Output format enum
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum OutputFormat {
+    Json,
+    Toon,
+    Human,
+}
+
+impl OutputFormat {
+    fn from_flags(toon: bool, json: bool, format: Option<&str>, mode: Mode) -> Self {
+        // Explicit format flag takes precedence
+        if let Some(fmt) = format {
+            match fmt.to_lowercase().as_str() {
+                "toon" => return OutputFormat::Toon,
+                "json" => return OutputFormat::Json,
+                "human" => return OutputFormat::Human,
+                _ => {
+                    eprintln!("Invalid format: {}. Valid values: toon, json, human", fmt);
+                    std::process::exit(EXIT_USAGE_ERROR);
+                }
+            }
+        }
+        
+        // Individual flags
+        if toon {
+            return OutputFormat::Toon;
+        }
+        if json {
+            return OutputFormat::Json;
+        }
+        
+        // Default based on mode
+        match mode {
+            Mode::Agent => OutputFormat::Toon,
+            Mode::Human => OutputFormat::Human,
+            Mode::Auto => {
+                // In auto mode, use TOON if agent session detected, otherwise human
+                if is_agent_session() {
+                    OutputFormat::Toon
+                } else {
+                    OutputFormat::Human
+                }
+            }
+        }
+    }
+}
+
 // Color configuration
 static COLORS_ENABLED: Lazy<bool> =
     Lazy::new(|| atty::is(atty::Stream::Stderr) && std::env::var("NO_COLOR").is_err());
 
 #[derive(Parser)]
-#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nExit codes:\n  0   Success\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
+#[command(name = "proximityd", version, about = "A CLI notification tool", long_about = "Generic presence detection service with pluggable notifications.\n\nMODE SELECTION:\n  The CLI operates in three modes: agent (optimized for AI consumption), human (interactive TTY-dependent),\n  and auto (environment-aware). Mode precedence: --human/--interactive > PROXIMITYD_MODE env var > config file > auto-detection.\n\nOUTPUT FORMATS:\n  The CLI supports three output formats: toon (token-efficient for AI), json (structured data),\n  and human (readable text). Format precedence: --format > --toon/--json > mode-based default.\n  Agent mode defaults to TOON, human mode defaults to human-readable text.\n\nExit codes:\n  0   Success\n  1   Generic error\n  2   Usage error\n  3   Network error\n  4   Validation error\n  5   File not found\n  6   Permission denied\n  130 SIGINT (Ctrl+C)")]
 struct Cli {
     /// Input files or glob patterns. Use "-" for stdin.
     #[arg(value_name = "INPUTS")]
@@ -47,6 +94,14 @@ struct Cli {
     /// Output as JSON
     #[arg(long)]
     json: bool,
+
+    /// Output as TOON format (token-efficient for AI consumption)
+    #[arg(long, help = "Output in TOON format (token-efficient for AI consumption)")]
+    toon: bool,
+
+    /// Output format (json, toon, human)
+    #[arg(long, value_name = "FORMAT", help = "Output format: toon (token-efficient), json (structured), or human (readable)")]
+    format: Option<String>,
 
     /// Quiet mode - suppress all output except errors
     #[arg(long, short = 'q')]
@@ -957,6 +1012,10 @@ fn main() -> Result<()> {
     info!("Effective operating mode: {:?}", effective_mode);
     info!("Agent session detected: {}", is_agent_session());
     info!("TTY detected: {}", is_tty());
+
+    // Determine output format
+    let output_format = OutputFormat::from_flags(cli.toon, cli.json, cli.format.as_deref(), effective_mode);
+    info!("Output format: {:?}", output_format);
 
     // Load device mappings (optional — missing file is OK)
     let devices_config = match config::load_devices(cli.devices.clone()) {

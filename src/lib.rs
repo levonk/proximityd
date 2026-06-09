@@ -6,6 +6,7 @@ pub mod error;
 pub mod health;
 pub mod location;
 pub mod notifier;
+pub mod output;
 pub mod scanner;
 pub mod signals;
 pub mod state;

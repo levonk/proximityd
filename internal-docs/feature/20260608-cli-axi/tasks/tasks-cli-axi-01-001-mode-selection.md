@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 1
 parallel_id: 1
 branch: "feature/current/cli-axi/story-01-001-mode-selection"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: []
