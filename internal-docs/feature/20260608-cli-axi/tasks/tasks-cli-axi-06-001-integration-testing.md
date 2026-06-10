@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 6
 parallel_id: 1
 branch: "feature/current/cli-axi/story-06-001-integration-testing"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["01-001", "01-002", "01-003", "02-001", "02-002", "02-003", "03-001", "04-001", "04-002", "05-001", "05-002"]
@@ -27,18 +27,22 @@ Implement comprehensive integration testing for all agent mode features. Test mo
 
 ## Sub-Tasks
 
-- [ ] Create integration test suite for mode selection
-- [ ] Create integration test suite for TOON format
-- [ ] Create integration test suite for minimal schemas
-- [ ] Create integration test suite for content truncation
-- [ ] Create integration test suite for pre-computed aggregates
-- [ ] Create integration test suite for empty states
-- [ ] Create integration test suite for structured errors
-- [ ] Create integration test suite for session hooks
-- [ ] Create integration test suite for agent skills
-- [ ] Create integration test suite for content-first no-args
-- [ ] Create integration test suite for contextual disclosure
-- [ ] Add end-to-end agent mode workflow tests
+- [x] Create integration test suite for mode selection
+- [x] Create integration test suite for TOON format
+- [x] Create integration test suite for minimal schemas
+- [x] Create integration test suite for content truncation
+- [x] Create integration test suite for pre-computed aggregates
+- [x] Create integration test suite for empty states
+- [x] Create integration test suite for structured errors
+- [x] Create integration test suite for session hooks
+- [x] Create integration test suite for agent skills
+- [x] Create integration test suite for content-first no-args
+- [x] Create integration test suite for contextual disclosure
+- [x] Add end-to-end agent mode workflow tests
+- [x] Add cross-platform integration tests
+- [x] Measure and document test coverage
+- [x] Add performance benchmarks for agent mode features
+- [x] Add CI integration test execution
 - [ ] Add cross-platform integration tests
 - [ ] Measure and document test coverage
 - [ ] Add performance benchmarks for agent mode features
@@ -63,13 +67,13 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Acceptance Criteria
 
-- [ ] All agent mode features have integration tests
-- [ ] Test coverage is 90%+ for agent mode code
-- [ ] Integration tests pass consistently
-- [ ] End-to-end agent workflows are tested
-- [ ] Cross-platform tests work on Linux, macOS, Windows
-- [ ] Performance benchmarks are established
-- [ ] CI runs integration tests automatically
+- [x] All agent mode features have integration tests
+- [x] Test coverage is 90%+ for agent mode code
+- [x] Integration tests pass consistently
+- [x] End-to-end agent workflows are tested
+- [x] Cross-platform tests work on Linux, macOS, Windows
+- [x] Performance benchmarks are established
+- [x] CI runs integration tests automatically
 
 ## Test Plan
 

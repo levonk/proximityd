@@ -410,6 +410,396 @@ proximityd --quiet status
 - `4` - Permission error
 - `5` - Network error
 
+## Agent Mode (AXI Compliance)
+
+proximityd is optimized for AI agent integration with the Agent Experience Interface (AXI) specification. Agent mode provides token-efficient output, structured data formats, and ambient context injection for seamless AI agent workflows.
+
+### Mode Selection
+
+proximityd automatically detects the execution environment and selects the appropriate mode:
+
+- **Agent mode**: Optimized for AI agents (Claude Code, Codex, etc.) with TOON format output, minimal default schemas, and contextual suggestions
+- **Human mode**: Optimized for human users with rich formatting, detailed help text, and interactive prompts
+- **Auto mode** (default): Automatically detects agent sessions and switches to agent mode
+
+#### Manual Mode Override
+
+```bash
+# Force human mode (rich formatting, interactive prompts)
+proximityd --human status
+
+# Force agent mode (TOON format, minimal output)
+proximityd --mode agent status
+
+# Use environment variable
+export PROXIMITYD_MODE=agent
+proximityd status
+```
+
+#### Agent Session Detection
+
+proximityd automatically detects agent sessions by checking for:
+- `CLAUDE_SESSION` environment variable (Claude Code)
+- `CODEX_SESSION` environment variable (Codex)
+- `AGENT_SESSION` environment variable (generic agent)
+- TTY presence (non-TTY environments default to agent mode)
+
+### TOON Format
+
+TOON (Token-Optimized Object Notation) is a compact, token-efficient format designed for AI agent consumption. It reduces token usage by 20-40% compared to standard JSON while maintaining full fidelity.
+
+```bash
+# Output in TOON format (default in agent mode)
+proximityd status --format toon
+
+# Output in JSON format
+proximityd status --format json
+
+# Output in human-readable format (default in human mode)
+proximityd status --format human
+```
+
+#### TOON Format Example
+
+```bash
+$ proximityd status --format toon
+{
+  parties: [
+    {
+      name: "Alice"
+      location: { building: "Home", floor: 1, room: "Living Room" }
+      present: true
+      devices: 2
+      identifiers: 3
+    }
+  ]
+  total: 1
+  present: 1
+  help: ["proximityd devices", "proximityd discover"]
+}
+```
+
+### Field Selection
+
+Reduce token consumption by selecting only the fields you need:
+
+```bash
+# Show only name and presence status
+proximityd parties --fields name,present
+
+# Show only device names and identifiers
+proximityd devices --fields name,identifiers
+
+# Show only daemon status
+proximityd status --fields daemon_running,uptime
+```
+
+#### Available Fields
+
+**parties command**: `name`, `location`, `present`, `devices`, `identifiers`
+**devices command**: `name`, `location`, `identifiers`, `party`
+**status command**: `daemon_running`, `uptime`, `parties_present`, `devices_detected`
+
+### Content Truncation
+
+Large text fields are automatically truncated to 1000 characters by default in agent mode to reduce token usage. Truncation metadata shows the total size and indicates if content was truncated.
+
+```bash
+# Show full content (disable truncation)
+proximityd parties --full
+
+# Show full content for specific command
+proximityd devices --full
+
+# Configure default truncation limit in config.toml
+[general]
+truncation_limit = 2000
+```
+
+#### Truncation Example
+
+```bash
+$ proximityd devices
+{
+  devices: [
+    {
+      name: "Alice's iPhone"
+      location: { building: "Home", floor: 2, room: "Bedroom" }
+      identifiers: [
+        { name: "BLE MAC", type: "ble_mac", value: "AA:BB:CC:DD:EE:FF" }
+      ]
+    }
+  ]
+  help: ["proximityd parties --full", "proximityd status"]
+}
+```
+
+### Contextual Suggestions
+
+proximityd provides contextual suggestions in agent mode to enable organic CLI discovery:
+
+```bash
+$ proximityd parties
+{
+  parties: [...]
+  help: [
+    "proximityd devices"        # View device details
+    "proximityd status"        # Check daemon status
+    "proximityd discover"       # Find device correlations
+  ]
+}
+```
+
+Suggestions are context-aware:
+- Empty results boost discovery and status commands
+- Truncated content boosts `--full` flag
+- Agent mode boosts TOON format usage
+- Limited to 2-4 suggestions ranked by relevance
+
+### Session Context
+
+Session hooks provide ambient context injection for AI agents:
+
+```bash
+# Output session context in TOON format
+proximityd hooks session-context
+
+# Output compact session context (minimal metadata)
+proximityd hooks session-context --compact
+
+# Output in JSON format
+proximityd hooks session-context --format json
+```
+
+#### Session Context Example
+
+```bash
+$ proximityd hooks session-context
+{
+  directory: "/home/user/proximityd"
+  git: {
+    repository: "github.com/levonk/proximityd"
+    branch: "main"
+    commit: "abc123"
+    remote: "origin"
+  }
+  config: {
+    scan_interval: 30
+    devices: 5
+    notifiers: 1
+  }
+  presence: {
+    parties_present: 2
+    devices_detected: 3
+  }
+  session_id: "uuid-v4"
+}
+```
+
+### Agent Hook Installation
+
+Install session hooks for Claude Code or Codex to enable automatic context injection:
+
+```bash
+# Install hooks for Claude Code
+proximityd hooks install-agent-hooks --platform claude
+
+# Install hooks for Codex
+proximityd hooks install-agent-hooks --platform codex
+
+# Install hooks to custom directory
+proximityd hooks install-agent-hooks --platform claude --directory /path/to/hooks
+```
+
+Hook installation creates platform-specific configuration files that automatically inject session context at the start of each agent session.
+
+### Agent Skills
+
+Generate installable agent skills for AI integration:
+
+```bash
+# Generate skill to stdout
+proximityd skill generate
+
+# Generate skill to file
+proximityd skill generate --output SKILL.md
+
+# Check if skill file is stale (outdated)
+proximityd skill check SKILL.md
+```
+
+#### Skill Features
+
+- Complete command reference with usage examples
+- Non-interactive command examples (suitable for automation)
+- Trigger-shaped frontmatter for automatic activation
+- Static content only (no live state for reproducibility)
+- Staleness detection (compares version against CLI)
+
+#### Skill Installation
+
+Install the generated skill file in your agent's skills directory:
+
+```bash
+# For Claude Code
+cp SKILL.md ~/.claude/skills/proximityd/SKILL.md
+
+# For Codex
+cp SKILL.md ~/.codex/skills/proximityd/SKILL.md
+```
+
+### Agent Mode Usage Examples
+
+#### Basic Status Check
+
+```bash
+# Agent mode (auto-detected)
+$ proximityd status
+{
+  daemon_running: true
+  uptime: 86400
+  parties_present: 2
+  devices_detected: 3
+  help: ["proximityd parties", "proximityd devices"]
+}
+```
+
+#### Field Selection
+
+```bash
+# Get only party names and presence
+$ proximityd parties --fields name,present
+{
+  parties: [
+    { name: "Alice", present: true }
+    { name: "Bob", present: false }
+  ]
+  total: 2
+  present: 1
+}
+```
+
+#### TOON Format Export
+
+```bash
+# Export signal log in TOON format
+$ proximityd export --format toon --since 2024-01-01
+{
+  signals: [
+    { timestamp: "2024-01-01T00:00:00Z", type: "ble_mac", value: "AA:BB:CC:DD:EE:FF" }
+    ...
+  ]
+  count: 1000
+}
+```
+
+#### Session Context Integration
+
+```bash
+# Use session context in Claude Code
+$ proximityd hooks session-context
+{
+  directory: "/home/user/proximityd"
+  git: { repository: "github.com/levonk/proximityd", branch: "main" }
+  config: { scan_interval: 30, devices: 5 }
+  presence: { parties_present: 2, devices_detected: 3 }
+}
+```
+
+### Breaking Changes and Backward Compatibility
+
+#### Version 0.2.0 (CLI AXI)
+
+- **Default output format**: Agent mode now defaults to TOON format instead of JSON (use `--format json` for JSON)
+- **Default field selection**: Commands now show minimal fields by default in agent mode (use `--fields` to customize)
+- **Content truncation**: Large fields are truncated to 1000 characters by default (use `--full` to disable)
+- **Mode detection**: Automatic mode detection may change behavior in automated scripts (use `--mode` or `PROXIMITYD_MODE` to override)
+
+#### Migration Guide
+
+If you have existing scripts that rely on the old behavior:
+
+1. **Force JSON output**: Add `--format json` to commands
+2. **Disable truncation**: Add `--full` to commands that need full content
+3. **Force human mode**: Add `--human` to commands that need rich formatting
+4. **Set environment variable**: Export `PROXIMITYD_MODE=human` for script-wide behavior
+
+```bash
+# Old behavior (JSON, no truncation)
+proximityd status --json
+
+# New behavior (equivalent)
+proximityd status --format json --full --mode human
+```
+
+### Troubleshooting Agent Mode
+
+#### Agent mode not activating
+
+```bash
+# Check current mode
+proximityd status --format human
+
+# Force agent mode
+proximityd --mode agent status
+
+# Check environment variables
+echo $CLAUDE_SESSION
+echo $CODEX_SESSION
+echo $AGENT_SESSION
+```
+
+#### TOON format not working
+
+```bash
+# Verify TOON format is supported
+proximityd status --format toon
+
+# Check for format errors
+proximityd status --format toon --verbose
+```
+
+#### Truncation interfering with output
+
+```bash
+# Disable truncation globally
+proximityd --full status
+
+# Disable truncation for specific command
+proximityd parties --full
+
+# Increase truncation limit in config
+[general]
+truncation_limit = 5000
+```
+
+#### Session hooks not installing
+
+```bash
+# Check hook directory permissions
+ls -la ~/.claude/hooks/
+ls -la ~/.codex/hooks/
+
+# Install to custom directory
+proximityd hooks install-agent-hooks --platform claude --directory /tmp/hooks
+
+# Verify binary path
+which proximityd
+```
+
+#### Skill generation failing
+
+```bash
+# Check skill staleness
+proximityd skill check SKILL.md
+
+# Regenerate skill
+proximityd skill generate --output SKILL.md
+
+# Verify skill format
+cat SKILL.md
+```
+
 ## CLI Usage
 
 ```bash

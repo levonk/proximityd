@@ -222,3 +222,178 @@ Dockerfile stages:
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/): `feat(module):`, `fix(module):`, `docs(module):`, etc.
 - Before committing, run `just quality` (wraps `cargo fmt --check`, `cargo clippy`, `cargo test`, and `cargo check`).
+
+---
+
+## Agent Mode (AXI Compliance)
+
+proximityd implements the Agent Experience Interface (AXI) specification for AI agent integration. When working with proximityd as an AI agent, follow these patterns:
+
+### Mode Detection
+
+proximityd automatically detects agent sessions and switches to agent mode. Detection is based on:
+- `CLAUDE_SESSION` environment variable (Claude Code)
+- `CODEX_SESSION` environment variable (Codex)
+- `AGENT_SESSION` environment variable (generic agent)
+- TTY presence (non-TTY environments default to agent mode)
+
+### Agent Mode Behavior
+
+When in agent mode, proximityd:
+- Uses TOON format by default (token-efficient output)
+- Shows minimal default schemas (3-4 fields per command)
+- Truncates large fields to 1000 characters
+- Provides contextual suggestions for CLI discovery
+- Suppresses interactive prompts and progress indicators
+
+### Working with Agent Mode
+
+#### Use TOON Format for Token Efficiency
+
+```bash
+# Agent mode defaults to TOON format
+proximityd status
+
+# Explicitly request TOON format
+proximityd status --format toon
+```
+
+#### Select Only Needed Fields
+
+```bash
+# Get minimal fields (default in agent mode)
+proximityd parties
+
+# Select specific fields
+proximityd parties --fields name,present
+```
+
+#### Disable Truncation When Needed
+
+```bash
+# Show full content
+proximityd parties --full
+
+# Use --full for commands with large output
+proximityd devices --full
+```
+
+#### Leverage Contextual Suggestions
+
+```bash
+# Suggestions appear in help[] array
+proximityd status
+# Output includes: help: ["proximityd parties", "proximityd devices"]
+```
+
+#### Use Session Context for Ambient Information
+
+```bash
+# Get session context (directory, git, config, presence)
+proximityd hooks session-context
+
+# Compact output for minimal token usage
+proximityd hooks session-context --compact
+```
+
+### Agent Integration Patterns
+
+#### Session Hook Installation
+
+Install session hooks for automatic context injection:
+
+```bash
+# For Claude Code
+proximityd hooks install-agent-hooks --platform claude
+
+# For Codex
+proximityd hooks install-agent-hooks --platform codex
+```
+
+#### Agent Skill Generation
+
+Generate installable agent skills:
+
+```bash
+# Generate skill file
+proximityd skill generate --output SKILL.md
+
+# Check skill staleness
+proximityd skill check SKILL.md
+```
+
+### Testing Agent Mode
+
+When testing agent mode features:
+
+```bash
+# Force agent mode for testing
+proximityd --mode agent status
+
+# Test TOON format output
+proximityd status --format toon
+
+# Test field selection
+proximityd parties --fields name,present
+
+# Test truncation
+proximityd devices  # Should truncate large fields
+proximityd devices --full  # Should show full content
+```
+
+### Common Agent Workflows
+
+#### Quick Status Check
+
+```bash
+proximityd status
+# Returns: daemon_running, uptime, parties_present, devices_detected
+```
+
+#### List Present Parties
+
+```bash
+proximityd parties --fields name,present
+# Returns: party names and presence status
+```
+
+#### Check Device Details
+
+```bash
+proximityd devices --fields name,identifiers
+# Returns: device names and identifier values
+```
+
+#### Export Signal Log
+
+```bash
+proximityd export --format toon --since 2024-01-01
+# Returns: signal log in TOON format
+```
+
+#### Get Session Context
+
+```bash
+proximityd hooks session-context --compact
+# Returns: directory, git, config, presence summary
+```
+
+### Avoiding Common Pitfalls
+
+1. **Don't use human mode in agent workflows**: Human mode includes rich formatting and interactive prompts that don't work well in automated contexts
+2. **Don't ignore truncation**: Large fields are truncated by default; use `--full` when you need complete content
+3. **Don't skip field selection**: Selecting only needed fields reduces token usage significantly
+4. **Don't ignore suggestions**: Contextual suggestions help discover relevant commands without manual exploration
+5. **Don't use TUI mode**: The `--interactive` flag launches a terminal UI that requires human input
+
+### Quality Gates for Agent Mode
+
+When implementing or testing agent mode features:
+
+- Test with `--mode agent` to ensure agent mode behavior
+- Verify TOON format output is valid and token-efficient
+- Check that field selection works correctly
+- Ensure truncation metadata is included when content is truncated
+- Verify contextual suggestions are relevant and ranked properly
+- Test session context generation includes all required fields
+- Validate agent skill generation produces usable output
