@@ -15,4 +15,4 @@
 | 05-002 | Contextual Disclosure | feature/current/cli-axi/story-05-002-contextual-disclosure | 01-003, 02-002 | Parallel-safe: true | output.rs, cli.rs | [x] Done |
 | 06-001 | Integration Testing | feature/current/cli-axi/story-06-001-integration-testing | 01-001, 01-002, 01-003, 02-001, 02-002, 02-003, 03-001, 04-001, 04-002, 05-001, 05-002 | Parallel-safe: false | tests/ | [x] Done |
 | 06-002 | Documentation Completion | feature/current/cli-axi/story-06-002-documentation | 04-002, 05-001, 05-002 | Parallel-safe: true | docs/, README.md | [x] Done |
-| 08-001 | AXI Documentation Verification | feature/current/cli-axi/story-08-001-axi-docs-verification | 01-001, 01-002, 01-003, 02-001, 02-002, 02-003, 03-001, 04-001, 04-002, 05-001, 05-002, 06-001, 06-002 | Parallel-safe: true | README.md, AGENTS.md, docs/ | [ ] Todo |
+| 08-001 | AXI Documentation Verification | feature/current/cli-axi/story-08-001-axi-docs-verification | 01-001, 01-002, 01-003, 02-001, 02-002, 02-003, 03-001, 04-001, 04-002, 05-001, 05-002, 06-001, 06-002 | Parallel-safe: true | README.md, AGENTS.md, docs/ | [x] Done |

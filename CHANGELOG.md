@@ -45,11 +45,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Webhook Notifier**: Generic HTTP webhook with configurable method and payload template
 - **MQTT Notifier**: MQTT broker integration with configurable topic (requires `mqtt` feature)
 
+#### CLI AXI Compliance (Agent Experience Interface)
+- **Mode Selection**: Automatic agent/human mode detection with manual override via `--human`, `--mode`, and `PROXIMITYD_MODE` environment variable
+- **TOON Format**: Token-optimized object notation format with 20-40% token savings over JSON, available via `--format toon` flag
+- **Minimal Default Schemas**: Default output schemas with 3-4 fields maximum, customizable via `--fields` flag for explicit field selection
+- **Content Truncation**: Automatic truncation of large text fields to 1000 characters with `--full` flag to disable, includes truncation metadata
+- **Pre-computed Aggregates**: Aggregate counts and derived status fields in list outputs (e.g., "count: 5 of 23 total", "identifiers: 3/3 active")
+- **Definitive Empty States**: Explicit empty state formatting with context (e.g., "parties: 0 parties found in presence.toml")
+- **Structured Errors**: Structured error output on stdout with actionable suggestions, idempotent operations for desired state
+- **Session Hooks**: Session context generation for ambient context injection with AI agents, hook installation for Claude Code and Codex
+- **Agent Skills**: Installable agent skill generation with staleness detection, trigger frontmatter, and non-interactive examples
+- **Content-First No-Args**: Context-aware no-args behavior showing live state instead of usage manual
+- **Contextual Disclosure**: Context-aware suggestion engine providing 2-4 relevant next-step commands in output
+- **Integration Testing**: Comprehensive integration test suite with 200+ tests covering all agent mode features
+
 ### Changed
 
 #### Breaking Changes
 - **Legacy Config Migration Removed**: The legacy `devices.toml` format is no longer supported. Users must manually migrate to the new `presence.toml` format. See README.md for migration guide.
 - **Exit Codes Updated**: Exit codes now follow standard conventions (0=success, 1=error, 2=usage, 3=config, 4=permission, 5=network). Scripts relying on specific exit codes may need updates.
+- **Agent Mode Defaults**: Agent mode now defaults to TOON format instead of JSON. Use `--format json` for JSON output in agent mode.
+- **Minimal Default Schemas**: Commands now show minimal fields (3-4) by default in agent mode. Use `--fields` flag to customize field selection.
+- **Content Truncation**: Large fields are truncated to 1000 characters by default in agent mode. Use `--full` flag to disable truncation.
+- **Automatic Mode Detection**: Automatic mode detection may change behavior in automated scripts. Use `--mode` or `PROXIMITYD_MODE` environment variable to override.
 
 #### Configuration
 - **Config Structure**: Reorganized config.toml into nested sections (general, privacy, scanner, detection, discovery, notifiers)
@@ -76,6 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AGENTS Update**: Updated agent guidelines with new CLI patterns and considerations
 - **Migration Guide**: Added step-by-step migration guide from legacy `devices.toml` format
 - **Verification Checklist**: Created CLI standards verification checklist documenting compliance with all 35 standards from ADR-20260607001
+- **AXI Documentation**: Added comprehensive agent mode documentation including mode selection, TOON format, field selection, content truncation, session hooks, agent skills, and troubleshooting
+- **AXI Verification Checklist**: Created AXI verification checklist documenting compliance with all 13 AXI requirements from PRD-20260608-cli-axi
 
 ## [0.1.0] - 2026-05-27
 

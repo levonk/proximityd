@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 8
 parallel_id: 1
 branch: "feature/current/cli-axi/story-08-001-axi-docs-verification"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["01-001", "01-002", "01-003", "02-001", "02-002", "02-003", "03-001", "04-001", "04-002", "05-001", "05-002", "06-001", "06-002"]
@@ -27,7 +27,7 @@ Update all project documentation to reflect new CLI AXI features and verify that
 
 ## Sub-Tasks
 
-- [ ] Update README.md with AXI features:
+- [x] Update README.md with AXI features:
   - Document agent mode overview and benefits
   - Document mode selection (--human, --mode, PROXIMITYD_MODE)
   - Document TOON format and --format flag
@@ -38,7 +38,7 @@ Update all project documentation to reflect new CLI AXI features and verify that
   - Document content-first no-args behavior
   - Document contextual disclosure and suggestions
   - Provide agent mode usage examples
-- [ ] Update AGENTS.md with AXI patterns:
+- [x] Update AGENTS.md with AXI patterns:
   - Document agent mode detection and usage
   - Document TOON format for agents
   - Document minimal schema patterns
@@ -48,12 +48,12 @@ Update all project documentation to reflect new CLI AXI features and verify that
   - Document structured error parsing
   - Document session hook integration
   - Document skill generation workflows
-- [ ] Create AXI verification checklist:
+- [x] Create AXI verification checklist:
   - Go through all AXI requirements from PRD-20260608-cli-axi
   - Mark each as implemented or not implemented
   - Add evidence/test case for each implemented requirement
   - Document any partial implementations
-- [ ] Verify all implemented AXI requirements:
+- [x] Verify all implemented AXI requirements:
   - Requirement 1: Mode Selection (agent/human/auto detection)
   - Requirement 2: TOON Format Implementation
   - Requirement 3: Minimal Default Schemas
@@ -67,12 +67,12 @@ Update all project documentation to reflect new CLI AXI features and verify that
   - Requirement 11: Contextual Disclosure
   - Requirement 12: Integration Testing
   - Requirement 13: Documentation Completion
-- [ ] Document any requirements not implemented with rationale
-- [ ] Add breaking change notice to release notes if applicable
-- [ ] Update CHANGELOG.md with all AXI features
-- [ ] Verify documentation is accurate and complete
-- [ ] Spell check all documentation
-- [ ] Link documentation to AXI specification reference
+- [x] Document any requirements not implemented with rationale
+- [x] Add breaking change notice to release notes if applicable
+- [x] Update CHANGELOG.md with all AXI features
+- [x] Verify documentation is accurate and complete
+- [x] Spell check all documentation
+- [x] Link documentation to AXI specification reference
 
 ## Relevant Files
 
@@ -83,16 +83,16 @@ Update all project documentation to reflect new CLI AXI features and verify that
 
 ## Acceptance Criteria
 
-- [ ] README.md documents all AXI features
-- [ ] AGENTS.md documents AXI patterns for agents
-- [ ] Verification checklist covers all AXI requirements from PRD
-- [ ] All implemented requirements have evidence/test cases
-- [ ] Non-implemented requirements have documented rationale
-- [ ] Breaking changes (if any) are documented in release notes
-- [ ] CHANGELOG.md is comprehensive
-- [ ] Documentation is accurate and complete
-- [ ] No spelling errors in documentation
-- [ ] Documentation links to AXI specification
+- [x] README.md documents all AXI features
+- [x] AGENTS.md documents AXI patterns for agents
+- [x] Verification checklist covers all AXI requirements from PRD
+- [x] All implemented requirements have evidence/test cases
+- [x] Non-implemented requirements have documented rationale
+- [x] Breaking changes (if any) are documented in release notes
+- [x] CHANGELOG.md is comprehensive
+- [x] Documentation is accurate and complete
+- [x] No spelling errors in documentation
+- [x] Documentation links to AXI specification
 
 ## Test Plan
 
