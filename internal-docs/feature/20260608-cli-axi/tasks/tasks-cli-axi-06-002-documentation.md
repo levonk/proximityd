@@ -7,7 +7,7 @@ prd_file: "internal-docs/feature/20260608-cli-axi/prd-20260608-cli-axi.md"
 phase: 6
 parallel_id: 2
 branch: "feature/current/cli-axi/story-06-002-documentation"
-status: "todo"
+status: "done"
 assignee: ""
 reviewer: ""
 dependencies: ["04-002", "05-001", "05-002"]
