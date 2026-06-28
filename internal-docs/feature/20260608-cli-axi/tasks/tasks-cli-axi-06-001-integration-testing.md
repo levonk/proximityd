@@ -77,8 +77,8 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Test Plan
 
-- Integration: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- cargo test --test integration`
-- Coverage: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- cargo test -- --nocapture`
+- Integration: `devbox run -c ~/p/gh/levonk/proximityd -- cargo test --test integration`
+- Coverage: `devbox run -c ~/p/gh/levonk/proximityd -- cargo test -- --nocapture`
 - Performance: Run benchmarks for agent mode features
 - Cross-platform: Test on Linux, macOS, Windows
 

@@ -61,11 +61,11 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Test Plan
 
-- Unit: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- cargo test output::aggregates`
+- Unit: `devbox run -c ~/p/gh/levonk/proximityd -- cargo test output::aggregates`
 - Integration: Test aggregates for all list commands
 - Performance: Benchmark aggregate computation
-- Lint: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- just lint-internal`
-- Types: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- just typecheck-internal`
+- Lint: `devbox run -c ~/p/gh/levonk/proximityd -- just lint-internal`
+- Types: `devbox run -c ~/p/gh/levonk/proximityd -- just typecheck-internal`
 
 ## Observability
 

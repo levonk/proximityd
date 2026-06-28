@@ -64,10 +64,10 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Test Plan
 
-- Unit: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- cargo test hooks`
+- Unit: `devbox run -c ~/p/gh/levonk/proximityd -- cargo test hooks`
 - Integration: Test hook installation and session-context output
-- Lint: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- just lint-internal`
-- Types: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- just typecheck-internal`
+- Lint: `devbox run -c ~/p/gh/levonk/proximityd -- just lint-internal`
+- Types: `devbox run -c ~/p/gh/levonk/proximityd -- just typecheck-internal`
 
 ## Observability
 

@@ -70,7 +70,7 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 - Review: Manual review of documentation completeness
 - Validation: Test documentation examples work correctly
-- Lint: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- just lint-internal`
+- Lint: `devbox run -c ~/p/gh/levonk/proximityd -- just lint-internal`
 
 ## Observability
 

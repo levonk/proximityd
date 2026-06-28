@@ -59,10 +59,10 @@ Status conventions: mark in-progress with `[~]`, done with `[x]`, blocked with `
 
 ## Test Plan
 
-- Unit: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- cargo test suggestions`
+- Unit: `devbox run -c ~/p/gh/levonk/proximityd -- cargo test suggestions`
 - Integration: Test suggestions for all commands and contexts
-- Lint: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- just lint-internal`
-- Types: `devbox run -c /Users/micro/p/gh/levonk/proximityd -- just typecheck-internal`
+- Lint: `devbox run -c ~/p/gh/levonk/proximityd -- just lint-internal`
+- Types: `devbox run -c ~/p/gh/levonk/proximityd -- just typecheck-internal`
 
 ## Observability
 
