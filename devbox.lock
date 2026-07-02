@@ -3,43 +3,93 @@
   "packages": {
     "cargo": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#cargo",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/5z8rq35zk9jqnnfw4m49fwpgq7phdhai-cargo-1.95.0",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "cargo-audit": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#cargo-audit",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/3pbdnj6x364wzy0pa050d47il13fp85y-cargo-audit-0.22.1",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "cargo-tarpaulin": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#cargo-tarpaulin",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/7in26wh0ykchis3c8ip899wbviwbpxd4-cargo-tarpaulin-0.35.4",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "cargo-watch": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#cargo-watch",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/bsn4jy7cvjyk41x1jp1vb7gdbkqpbry0-cargo-watch-8.5.3",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "clippy": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#clippy",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/ipr8v8md5glz2c6nd1zi7193s62va753-clippy-1.95.0",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
-      "last_modified": "2026-05-25T07:42:19Z",
-      "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b?lastModified=1779694939"
+      "last_modified": "2026-06-27T07:37:20Z",
+      "resolved": "github:NixOS/nixpkgs/3d46470bb3030020f7e1361f33514854f5bfa86d?lastModified=1782545840"
     },
     "github:levonk/levonk-packages#bundle-rtk-cloud": {
-      "last_modified": "2026-06-27T16:54:13Z",
-      "resolved": "github:levonk/levonk-packages/2899d4e3dc0d397f16feb3765566ee03f9cce374?lastModified=1782579253#bundle-rtk-cloud"
+      "last_modified": "2026-06-28T11:41:53Z",
+      "resolved": "github:levonk/levonk-packages/9d3df66f8a3a5a0303a30392f20aca6180992597?lastModified=1782646913#bundle-rtk-cloud"
     },
     "github:levonk/levonk-packages#bundle-rtk-core": {
-      "last_modified": "2026-06-27T16:54:13Z",
-      "resolved": "github:levonk/levonk-packages/2899d4e3dc0d397f16feb3765566ee03f9cce374?lastModified=1782579253#bundle-rtk-core"
+      "last_modified": "2026-06-28T11:41:53Z",
+      "resolved": "github:levonk/levonk-packages/9d3df66f8a3a5a0303a30392f20aca6180992597?lastModified=1782646913#bundle-rtk-core"
     },
     "github:levonk/levonk-packages#devbox-rtk-nodejs-pnpm-force": {
-      "last_modified": "2026-06-27T16:54:13Z",
-      "resolved": "github:levonk/levonk-packages/2899d4e3dc0d397f16feb3765566ee03f9cce374?lastModified=1782579253#devbox-rtk-nodejs-pnpm-force"
+      "last_modified": "2026-06-28T11:41:53Z",
+      "resolved": "github:levonk/levonk-packages/9d3df66f8a3a5a0303a30392f20aca6180992597?lastModified=1782646913#devbox-rtk-nodejs-pnpm-force"
     },
     "github:levonk/levonk-packages#devbox-rtk-python-uv-force": {
-      "last_modified": "2026-06-27T16:54:13Z",
-      "resolved": "github:levonk/levonk-packages/2899d4e3dc0d397f16feb3765566ee03f9cce374?lastModified=1782579253#devbox-rtk-python-uv-force"
+      "last_modified": "2026-06-28T11:41:53Z",
+      "resolved": "github:levonk/levonk-packages/9d3df66f8a3a5a0303a30392f20aca6180992597?lastModified=1782646913#devbox-rtk-python-uv-force"
     },
     "github:levonk/smartfo": {
       "last_modified": "2026-06-28T08:04:42Z",
@@ -47,24 +97,90 @@
     },
     "just": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#just",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "man",
+              "path": "/nix/store/144wqvh3s441y05xvzn8m16rhcqbki7d-just-1.51.0-man",
+              "default": true
+            },
+            {
+              "path": "/nix/store/7ppiil9ycr565vqgbc18x4rpgbfgcnzy-just-1.51.0",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "pkg-config": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#pkg-config",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/8cs8a12z75g9lnpch92y1f7bb9kqmgrz-pkg-config-wrapper-0.29.2",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/masw8xvkn6ygkbi35myxy0ngzxknpva6-pkg-config-wrapper-0.29.2-man",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "rust-analyzer": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#rust-analyzer",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "04-27",
+              "path": "/nix/store/40jnzcmhddkwf4qjcv5as05cbxyslavj-rust-analyzer-2026-04-27",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "rustc": {
       "plugin_version": "0.0.1",
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#rustc",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/6b0k5kdmlfl91qa8mk3ssfgvskqkvy4r-rustc-wrapper-1.95.0",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/2cvnw62k02n4afiahfrip1ambv8c2489-rustc-wrapper-1.95.0-man",
+              "default": true
+            }
+          ]
+        }
+      }
     },
     "rustfmt": {
       "resolved": "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b#rustfmt",
-      "source": "nixpkg"
+      "source": "nixpkg",
+      "systems": {
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/3w8bdmiz9xjr7yyggvpkf60pg8rm8km3-rustfmt-1.95.0",
+              "default": true
+            }
+          ]
+        }
+      }
     }
   }
 }
