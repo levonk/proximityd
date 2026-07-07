@@ -673,25 +673,24 @@ fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, qu
         // Use empty state formatter
         let context = EmptyContext::new("status", "active devices");
         let formatter = EmptyFormatter::new(true);
-        
-        if json {
-            let output = formatter.format_json(&context)?;
-            println!("{}", output);
-        } else {
-            let output = formatter.format_human(&context);
-            print!("{}", output);
-        }
-        
-        // Add suggestions even for empty results
+
+        // Suggestions are shared across formats
         let suggestion_engine = SuggestionEngine::new();
         let output_format_str = if json { "json" } else { "human" };
         let suggestion_context = SuggestionContext::new("status", true, present_count, output_format_str, false, "agent");
         let suggestions = suggestion_engine.generate(&suggestion_context);
-        
+
         if json {
-            let suggestions_output = format_suggestions_toon(&suggestions);
-            println!("{}", serde_json::to_string_pretty(&suggestions_output)?);
+            // ponytail: single JSON envelope so output parses as one document
+            let envelope = serde_json::json!({
+                "data": context,
+                "aggregate": null,
+                "suggestions": format_suggestions_toon(&suggestions)["help"],
+            });
+            println!("{}", serde_json::to_string_pretty(&envelope)?);
         } else {
+            let output = formatter.format_human(&context);
+            print!("{}", output);
             let suggestions_output = format_suggestions_human(&suggestions);
             print!("{}", suggestions_output);
         }
@@ -706,21 +705,19 @@ fn run_status(json: bool, fields: Option<String>, full: bool, no_pager: bool, qu
                 None
             },
         };
-        
-        let output = serde_json::to_string_pretty(&status_output)
-            .context("Failed to serialize status to JSON")?;
-        
-        // Add suggestions
+
+        // Suggestions
         let suggestion_engine = SuggestionEngine::new();
         let suggestion_context = SuggestionContext::new("status", false, present_count, "json", false, "agent");
         let suggestions = suggestion_engine.generate(&suggestion_context);
-        let suggestions_output = format_suggestions_toon(&suggestions);
-        
-        let mut output_with_suggestions = output;
-        output_with_suggestions.push_str("\n// Suggestions\n");
-        output_with_suggestions.push_str(&serde_json::to_string_pretty(&suggestions_output)?);
-        
-        println!("{}", output_with_suggestions);
+
+        // ponytail: single JSON envelope so output parses as one document
+        let envelope = serde_json::json!({
+            "data": status_output,
+            "aggregate": null,
+            "suggestions": format_suggestions_toon(&suggestions)["help"],
+        });
+        println!("{}", serde_json::to_string_pretty(&envelope)?);
     } else {
         let mut output = String::new();
         output.push_str("Presence Status\n");
@@ -823,30 +820,29 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
         // Use empty state formatter
         let context = EmptyContext::new("parties", "all configured parties");
         let formatter = EmptyFormatter::new(true);
-        
-        if json {
-            let output = formatter.format_json(&context)?;
-            println!("{}", output);
-        } else {
-            let output = formatter.format_human(&context);
-            print!("{}", output);
-        }
-        
-        // Add suggestions even for empty results
+
+        // Suggestions are shared across formats
         let suggestion_engine = SuggestionEngine::new();
         let suggestion_context = SuggestionContext::new("parties", true, 0, "json", false, "agent");
         let suggestions = suggestion_engine.generate(&suggestion_context);
-        
+
         if json {
-            let suggestions_output = format_suggestions_toon(&suggestions);
-            println!("{}", serde_json::to_string_pretty(&suggestions_output)?);
+            // ponytail: single JSON envelope so output parses as one document
+            let envelope = serde_json::json!({
+                "data": context,
+                "aggregate": null,
+                "suggestions": format_suggestions_toon(&suggestions)["help"],
+            });
+            println!("{}", serde_json::to_string_pretty(&envelope)?);
         } else {
+            let output = formatter.format_human(&context);
+            print!("{}", output);
             let suggestions_output = format_suggestions_human(&suggestions);
             print!("{}", suggestions_output);
         }
     } else if json {
         let list_aggregate = ListAggregate::from_collection(parties);
-        
+
         let party_outputs: Vec<PartyOutput> = parties.iter().map(|party| {
             let device_count = party.devices.len();
             PartyOutput {
@@ -873,24 +869,18 @@ fn run_parties(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
             }
         }).collect();
 
-        let mut output_with_agg = serde_json::to_string_pretty(&party_outputs)
-            .context("Failed to serialize parties to JSON")?;
-        
-        // Add aggregate metadata at the end
-        let agg_json = serde_json::to_string_pretty(&list_aggregate)
-            .context("Failed to serialize aggregate metadata")?;
-        output_with_agg.push_str("\n// Aggregate metadata\n");
-        output_with_agg.push_str(&agg_json);
-        
-        // Add suggestions
+        // Suggestions
         let suggestion_engine = SuggestionEngine::new();
         let suggestion_context = SuggestionContext::new("parties", false, parties.len(), "json", false, "agent");
         let suggestions = suggestion_engine.generate(&suggestion_context);
-        let suggestions_output = format_suggestions_toon(&suggestions);
-        output_with_agg.push_str("\n// Suggestions\n");
-        output_with_agg.push_str(&serde_json::to_string_pretty(&suggestions_output)?);
-        
-        println!("{}", output_with_agg);
+
+        // ponytail: single JSON envelope so output parses as one document
+        let envelope = serde_json::json!({
+            "data": party_outputs,
+            "aggregate": list_aggregate,
+            "suggestions": format_suggestions_toon(&suggestions)["help"],
+        });
+        println!("{}", serde_json::to_string_pretty(&envelope)?);
     } else {
         let list_aggregate = ListAggregate::from_collection(parties);
         
@@ -1003,30 +993,29 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
         // Use empty state formatter
         let context = EmptyContext::new("devices", "all configured devices");
         let formatter = EmptyFormatter::new(true);
-        
-        if json {
-            let output = formatter.format_json(&context)?;
-            println!("{}", output);
-        } else {
-            let output = formatter.format_human(&context);
-            print!("{}", output);
-        }
-        
-        // Add suggestions even for empty results
+
+        // Suggestions are shared across formats
         let suggestion_engine = SuggestionEngine::new();
         let suggestion_context = SuggestionContext::new("devices", true, all_devices_count, "json", false, "agent");
         let suggestions = suggestion_engine.generate(&suggestion_context);
-        
+
         if json {
-            let suggestions_output = format_suggestions_toon(&suggestions);
-            println!("{}", serde_json::to_string_pretty(&suggestions_output)?);
+            // ponytail: single JSON envelope so output parses as one document
+            let envelope = serde_json::json!({
+                "data": context,
+                "aggregate": null,
+                "suggestions": format_suggestions_toon(&suggestions)["help"],
+            });
+            println!("{}", serde_json::to_string_pretty(&envelope)?);
         } else {
+            let output = formatter.format_human(&context);
+            print!("{}", output);
             let suggestions_output = format_suggestions_human(&suggestions);
             print!("{}", suggestions_output);
         }
     } else if json {
         let list_aggregate = ListAggregate::from_collection(&all_devices);
-        
+
         let device_outputs: Vec<DeviceOutput> = all_devices.iter().map(|(_, device)| {
             let identifier_count = device.identifiers.len();
             DeviceOutput {
@@ -1054,24 +1043,18 @@ fn run_devices(json: bool, fields: Option<String>, full: bool, no_pager: bool, q
             }
         }).collect();
 
-        let mut output_with_agg = serde_json::to_string_pretty(&device_outputs)
-            .context("Failed to serialize devices to JSON")?;
-        
-        // Add aggregate metadata at the end
-        let agg_json = serde_json::to_string_pretty(&list_aggregate)
-            .context("Failed to serialize aggregate metadata")?;
-        output_with_agg.push_str("\n// Aggregate metadata\n");
-        output_with_agg.push_str(&agg_json);
-        
-        // Add suggestions
+        // Suggestions
         let suggestion_engine = SuggestionEngine::new();
         let suggestion_context = SuggestionContext::new("devices", false, all_devices_count, "json", false, "agent");
         let suggestions = suggestion_engine.generate(&suggestion_context);
-        let suggestions_output = format_suggestions_toon(&suggestions);
-        output_with_agg.push_str("\n// Suggestions\n");
-        output_with_agg.push_str(&serde_json::to_string_pretty(&suggestions_output)?);
-        
-        println!("{}", output_with_agg);
+
+        // ponytail: single JSON envelope so output parses as one document
+        let envelope = serde_json::json!({
+            "data": device_outputs,
+            "aggregate": list_aggregate,
+            "suggestions": format_suggestions_toon(&suggestions)["help"],
+        });
+        println!("{}", serde_json::to_string_pretty(&envelope)?);
     } else {
         let list_aggregate = ListAggregate::from_collection(&all_devices);
         

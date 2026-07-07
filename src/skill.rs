@@ -79,7 +79,7 @@ pub fn generate_skill(
 }
 
 /// CLI metadata for skill generation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CliMetadata {
     /// CLI name
     pub name: String,
@@ -94,7 +94,7 @@ pub struct CliMetadata {
 }
 
 /// Command metadata
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandMetadata {
     /// Command name
     pub name: String,
@@ -147,13 +147,17 @@ fn create_skill_metadata(cli_metadata: &CliMetadata) -> Result<SkillMetadata> {
     })
 }
 
-/// Generate skill content in markdown format
+/// Generate skill content in markdown or JSON format
 fn generate_skill_content(
     metadata: &SkillMetadata,
     cli_metadata: &CliMetadata,
     session_context: Option<&SessionContext>,
     options: &SkillGenerationOptions,
 ) -> Result<String> {
+    if options.format == SkillFormat::Json {
+        return generate_skill_json(metadata, cli_metadata, session_context, options);
+    }
+
     let mut content = String::new();
 
     // Add frontmatter
@@ -252,6 +256,60 @@ fn generate_skill_content(
     content.push_str(&format!("# List devices\n{} devices\n\n", cli_metadata.name));
 
     Ok(content)
+}
+
+/// Generate skill content as a single JSON document.
+fn generate_skill_json(
+    metadata: &SkillMetadata,
+    cli_metadata: &CliMetadata,
+    session_context: Option<&SessionContext>,
+    options: &SkillGenerationOptions,
+) -> Result<String> {
+    // Rewrite usages to non-interactive form when requested
+    let commands: Vec<serde_json::Value> = cli_metadata
+        .commands
+        .iter()
+        .map(|cmd| {
+            let usage = if options.non_interactive {
+                rewrite_to_non_interactive(&cmd.usage)
+            } else {
+                cmd.usage.clone()
+            };
+            serde_json::json!({
+                "name": cmd.name,
+                "description": cmd.description,
+                "usage": usage,
+                "subcommands": cmd.subcommands,
+            })
+        })
+        .collect();
+
+    let mut envelope = serde_json::json!({
+        "metadata": metadata,
+        "cli": {
+            "name": cli_metadata.name,
+            "version": cli_metadata.version,
+            "description": cli_metadata.description,
+            "repository": cli_metadata.repository,
+            "commands": commands,
+        },
+    });
+
+    if let Some(ctx) = session_context {
+        if options.include_live_state {
+            envelope["session_context"] = serde_json::json!({
+                "cwd": ctx.cwd,
+                "git": ctx.git.as_ref().map(|g| serde_json::json!({
+                    "root": g.root,
+                    "branch": g.branch,
+                    "commit": g.commit,
+                    "remote": g.remote,
+                })),
+            });
+        }
+    }
+
+    Ok(serde_json::to_string_pretty(&envelope)?)
 }
 
 /// Rewrite command examples to non-interactive form
